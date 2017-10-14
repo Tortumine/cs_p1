@@ -18,6 +18,8 @@ WORDS_PER_ROW = 64
 NB_MAZE_WORDS = 512 
 CELLS_PER_WORD = 4
 
+.macro MODC(Ra, c, Rc) DIVC(Ra, c, Rc) MULC(Rc, c, Rc) SUB(Ra, Rc, Rc)
+
 |;Functions
 
 |;row_from_index
@@ -71,6 +73,42 @@ PUSH(BP)
 
 
 
-
+|;----------
+|;perfect_maze
+|;----------
+|;PARAMETERS
+|;
+|;
+|;
+|;
+|;
+|;REGISTER
+|;R1 	-> Maze
+|;R2 	-> Rows
+|;R3 	-> Cols
+|;R4 	-> Visited
+|;R5 	-> CurrentCell
+|;R6 	-> 
+|;R7 	->
+|;R8 	->
+|;R9 	->
+|;R10	->
+|;R11	-> tmp
+|;R12	-> tmp
+|;R13	-> tmp
+|;----------
 perfect_maze:
 
+|;need function stuff
+
+|; set current cell as visited
+|; Set mask
+MODC(R5, 32, R11) 	|;R11 <- current_cell%32
+CMOVE(1, R12)
+SHL(R12, R11, R11)	|;R11 <- (1 << Current_cell%32)
+|;Get VisitedRegister
+DIVC(R5, 32, R12)	|;R12 <- curr_cell / 32
+ADD(R4, R12, R12)	|;R12 <- visited[curr_cell / 32]
+LD(R12, 0, R13)		|;R13 <- &visited[curr_cell / 32]
+OR(R13, R11, R13)	|;visited[curr_cell /32] |= (1 << curr_cell % 32)
+ST(R13, 0, R12)		|;Save visited[curr_cell /32] |= (1 << curr_cell % 32) 
