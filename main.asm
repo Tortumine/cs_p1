@@ -23,8 +23,14 @@ nb_cells = rows * cols
 .macro V_LINE() FILL(0xC0C0C0C0)
 
 .macro ROW() {
-	H_LINE() H_LINE() V_LINE() V_LINE() 
-	V_LINE() V_LINE() V_LINE() V_LINE() 
+	H_LINE() 
+	H_LINE() 
+	V_LINE() 
+	V_LINE() 
+	V_LINE() 
+	V_LINE() 
+	V_LINE() 
+	V_LINE() 
 }
 
 .macro MAZE() {
@@ -78,11 +84,11 @@ main__:
 	MOD(R0, R5, R6)
 
 	|; create the perfect maze
-	PUSH(R6)
-	PUSH(R4)
-	PUSH(R3)
-	PUSH(R2)
-	PUSH(R1)
+	PUSH(R6) |; CurrentCell
+	PUSH(R4) |; Visited
+	PUSH(R3) |; Cols
+	PUSH(R2) |; Rows
+	PUSH(R1) |; Maze
 	CALL(perfect_maze)
 	DEALLOCATE(5)
 	HALT()
