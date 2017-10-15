@@ -107,16 +107,15 @@ connect:
 	CMPLEC(R11, 0x1, R11)	|; RC <- <RA> <= C
 	BEQ(R11, vertical)	
 	horizontal:
-		ST(R31,0x0044)
-		HALT()
-		
-	vertical:
 		LD(R1, 0x0, R11)		|; RC <- <<RA>+CC>	(get table row0)
 		ANDC(R11,TEST_1, R12)	|; RC <- <RA> + C	(bit mask and table)
 	 	ST(R12,0x0,R1)
 		LD(R1, 0x20, R11)		|; RC <- <<RA>+CC>	(get table row1)
 		ANDC(R11,TEST_1, R12)	|; RC <- <RA> + C	(bit mask and table)
 	 	ST(R12,0x20,R1)
+		HALT()
+	vertical:
+	 	ST(R31,0x0044)
 		HALT()
 	vhend:	|; vertical horizontal end
 	
@@ -128,7 +127,7 @@ perfect_maze:
 	|; for horizontal : R3 = R2 +-1
 	|; for vertical : R3 = R2 +-32
 		CMOVE(0x45,R2) 
-		CMOVE(0x77,R3) |; 77 || 46
+		CMOVE(0x46,R3) |; 77 || 46
 		CMOVE(32,R4)
 	
 	PUSH(R4)	|;nb_cols
