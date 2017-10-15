@@ -1,12 +1,10 @@
 |; constants
 H_LINE = 0xFFFFFFFF
 V_LINE = 0xC0C0C0C0
-TEST_1 = 0xE1FF
-TEST_2 = 0xFFE1
-OPEN_V_0 = 0xFFFFFF00
-OPEN_V_1 = 0xFFFF00FF
-OPEN_V_2 = 0xFF00FFFF
-OPEN_V_3 = 0x00FFFFFF
+OPEN_V_0 = 0xFFFFFFE1
+OPEN_V_1 = 0xFFFFE1FF
+OPEN_V_2 = 0xFFE1FFFF
+OPEN_V_3 = 0xE1FFFFFF
 OPEN_H_0 = 0xFFFFFFE1
 OPEN_H_1 = 0xFFFFE1FF
 OPEN_H_2 = 0xFFE1FFFF
@@ -19,6 +17,8 @@ MEM_LINES_PER_ROW = 8
 WORDS_PER_ROW = 64
 NB_MAZE_WORDS = 512 
 CELLS_PER_WORD = 4
+
+TEST_0 = 0xFFE1
 
 |;Functions
 
@@ -107,12 +107,16 @@ connect:
 	CMPLEC(R11, 0x1, R11)	|; RC <- <RA> <= C
 	BEQ(R11, vertical)	
 	horizontal:
-		LD(R1, 0x0, R11)		|; RC <- <<RA>+CC>	(get table row0)
-		ANDC(R11,TEST_1, R12)	|; RC <- <RA> + C	(bit mask and table)
-	 	ST(R12,0x0,R1)
-		LD(R1, 0x20, R11)		|; RC <- <<RA>+CC>	(get table row1)
-		ANDC(R11,TEST_1, R12)	|; RC <- <RA> + C	(bit mask and table)
-	 	ST(R12,0x20,R1)
+		ST(R31,0x0044)
+		HALT()
+	vertical:
+		MOVE(R1,R15) |; need to init a reg for SUBC()
+		LD(R15, 0x0, R11)		|; RC <- <<RA>+CC>	(get table row0)
+		ANDC(R11,OPEN_V_1, R12)	|; RC <- <RA> + C	(bit mask and table)
+	 	ST(R12,0x0,R15)
+		LD(R15, 0x20, R11)		|; RC <- <<RA>+CC>	(get table row1)
+		ANDC(R11,OPEN_V_1, R12)	|; RC <- <RA> + C	(bit mask and table)
+	 	ST(R12,0x20,R15)
 		HALT()
 	vertical:
 	 	ST(R31,0x0044)
