@@ -1,10 +1,14 @@
 |; constants
+|; TODO :: fix bug, constant declaration create longs (16b)
+|; but we need words (32b)
+|; TODO :: check lines 94-107,maybe false word offset
+|; but we need words (32b)
 H_LINE = 0xFFFFFFFF
 V_LINE = 0xC0C0C0C0
-OPEN_V_0 = 0xFFFFFFE1
-OPEN_V_1 = 0xFFFFE1FF
-OPEN_V_2 = 0xFFE1FFFF
-OPEN_V_3 = 0xE1FFFFFF
+OPEN_V_0 = 0xFFFFFF00
+OPEN_V_1 = 0xFFFF00FF
+OPEN_V_2 = 0xFF00FFFF
+OPEN_V_3 = 0x00FFFFFF
 OPEN_H_0 = 0xFFFFFFE1
 OPEN_H_1 = 0xFFFFE1FF
 OPEN_H_2 = 0xFFE1FFFF
@@ -86,14 +90,15 @@ connect:
 	|; TODO :: create functions cf C L54->L59
 	|; row_from_index & col_from_index
 	
-	|; row_offset = (dest/nb_cols)*WORDS_PER_ROW
+	breakpoint.
 	|; R5 = R3/R4 <==> dest_row = dest / nb_cols
 	DIV(R3, R4, R5)	|; RC <- <RA> / <RB>
+	|; R6 = R5*WORDS_PER_ROW <==> row_offset = dest_row*WORDS_PER_ROW
 	MULC(R5, WORDS_PER_ROW, R6)
 	|; modulo : a % b == a & (b - 1)
+	
 	SUBC(R4, 0x1, R11)
 	AND(R2,R11,R7)
-	
 	DIV(R7, CELLS_PER_WORD, R8)
 	ADD(R6, R8, R9)
 	|; modulo
@@ -104,22 +109,28 @@ connect:
 	|; vertical connection cf C L61->L75
 	|; [if(dest - source > 1)==>verical] <==> [if(dest - source <= 0)==>verical]
 	SUB(R3, R2, R11)
-	CMPLEC(R11, 0x1, R11)	|; RC <- <RA> <= C
-	BEQ(R11, vertical)	
-	horizontal:
+	CMPLEC(R11, 0x1, R11)
+	BEQ(R11, horizontal)
+	
+	vertical:	|; open vertical connection
 		ST(R31,0x0044)
 		HALT()
-	vertical:
-		MOVE(R1,R15) |; need to init a reg for SUBC()
-		LD(R15, 0x0, R11)		|; RC <- <<RA>+CC>	(get table row0)
-		ANDC(R11,OPEN_V_1, R12)	|; RC <- <RA> + C	(bit mask and table)
-	 	ST(R12,0x0,R15)
-		LD(R15, 0x20, R11)		|; RC <- <<RA>+CC>	(get table row1)
-		ANDC(R11,OPEN_V_1, R12)	|; RC <- <RA> + C	(bit mask and table)
-	 	ST(R12,0x20,R15)
-		HALT()
-	vertical:
-	 	ST(R31,0x0044)
+
+	horizontal:	|; open horizontal connection
+		MOVE(R1,R15)
+		|; TODO :: "switch-case" on byte_offset (0,1,2 or 3)
+		|; TODO :: adapt H0 case to H1,H2,H3
+		horizontal_0:	|;case H0
+			LD(R15, 0x0, R11)		|; RC <- <<RA>+CC>	(get table row0)
+			ANDC(R11,OPEN_H_0, R12)	|; RC <- <RA> + C	(bit mask and table)
+			ST(R12,0x0,R15)
+			LD(R15, 0x20, R11)		|; RC <- <<RA>+CC>	(get table row1)
+			ANDC(R11,OPEN_H_0, R12)	|; RC <- <RA> + C	(bit mask and table)
+			ST(R12,0x20,R15)
+			HALT()
+		horizontal_1:	|;case H1	
+		horizontal_2:	|;case H2
+		horizontal_3:	|;case H3
 		HALT()
 	vhend:	|; vertical horizontal end
 	
@@ -130,8 +141,8 @@ perfect_maze:
 	|; connect test regs
 	|; for horizontal : R3 = R2 +-1
 	|; for vertical : R3 = R2 +-32
-		CMOVE(0x45,R2) 
-		CMOVE(0x46,R3) |; 77 || 46
+		CMOVE(33,R2) 
+		CMOVE(65,R3)
 		CMOVE(32,R4)
 	
 	PUSH(R4)	|;nb_cols
