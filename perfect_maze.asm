@@ -53,7 +53,7 @@ OPEN_V3:
 |;nb_col
 |;REGISTER
 |;R1 -> index
-|;R2 -> nb_col
+|;R2 -> nb_cols
 |;R0 -> return
 row_from_index:
 PUSH(LP)
@@ -84,12 +84,12 @@ RTN()
 |;source -> R2
 |;dest -> R3
 |;nb_cols -> R4
-|;dest_row -> R5
-|;row_offset -> R6
-|;source_col -> R7
-|;word_offset_in_line -> R8
-|;word_offset -> R9
-|;byte_offset -> R10
+|;dest_row -> R5				= dest / nb_cols
+|;row_offset -> R6				= dest_row * WORDS_PER_ROW
+|;source_col -> R7				= source % nb_cols
+|;word_offset_in_line -> R8		= source_col / CELLS_PER_WORD
+|;word_offset -> R9				= row_offset + word_offset_in_line
+|;byte_offset -> R10			= source_col % CELLS_PER_WORD
 |;----------
 |;TMP vars
 |;----------
@@ -141,7 +141,8 @@ connect:
 	BEQ(R11, horizontal)
 
 	vertical:	|; open vertical connection
-		ADDC(R15,0x40,R15) |; add a offset vertical cut
+		MUL(R15, R9, R15)		|; RC <- <RA> * <RB>
+		ADDC(R15,0x40,R15) 	|; add a offset vertical cut
 		|; Switch case
 		CMPEQC(R10, 0x0, R11)
 		BT(R11, vertical_0)	|; 0
@@ -173,7 +174,7 @@ connect:
 			ST(R14, 0xC0, R15)		
 			BEQ(R31, vhend)			|; quit the conditional structure
 			
-		vertical_2:				|;case H1	
+		vertical_2:				|;case H2
 			LD(R15, 0x60, R11)		|; get table row0
 			CMOVE(OPEN_V2, R12)		|; get bit mask adr
 			LD(R12,0x0,R13)			|; get bit mask
@@ -184,7 +185,7 @@ connect:
 			ST(R14, 0xC0, R15)			
 			BEQ(R31, vhend)			|; quit the conditional structure
 			
-		vertical_3:				|;case H1	
+		vertical_3:				|;case H3
 			LD(R15, 0x60, R11)		|; get table row0
 			CMOVE(OPEN_V3, R12)		|; get bit mask adr
 			LD(R12,0x0,R13)			|; get bit mask
@@ -197,7 +198,6 @@ connect:
 
 		
 	horizontal:	|; open horizontal connection
-		
 		|; Switch case
 		CMPEQC(R10, 0x0, R11)
 		BT(R11, horizontal_0)	|; 0
@@ -249,8 +249,8 @@ perfect_maze:
 	|; connect test regs
 	|; for horizontal : R3 = R2 +-1
 	|; for vertical : R3 = R2 +-32
-		CMOVE(6,R2) 
-		CMOVE(7,R3)
+		CMOVE(4,R2) 
+		CMOVE(5,R3)
 		CMOVE(NB_COLS,R4)
 	
 	PUSH(R4)	|;nb_cols
