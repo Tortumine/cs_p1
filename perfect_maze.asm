@@ -24,9 +24,6 @@ WORDS_PER_ROW = 64
 NB_MAZE_WORDS = 512 
 CELLS_PER_WORD = 4
 
-TEST_0 = 0xFFE1
-|;TEST_1
-
 OPEN_H0:
     OPEN_H_0()
 OPEN_H1:
@@ -141,17 +138,18 @@ connect:
 	BEQ(R11, horizontal)
 
 	vertical:	|; open vertical connection
-		MUL(R15, R9, R15)		|; RC <- <RA> * <RB>
+		|; R15 = word_offset + WORDS_PER_MEM_LINE
+		MULC(R9, WORDS_PER_MEM_LINE, R15)		|; RC <- <RA> * <RB>
 		ADDC(R15,0x40,R15) 	|; add a offset vertical cut
 		|; Switch case
 		CMPEQC(R10, 0x0, R11)
 		BT(R11, vertical_0)	|; 0
 		CMPEQC(R10, 0x1, R11)	
-		BT(R11, vertical_1)	|; 0
+		BT(R11, vertical_1)	|; 1
 		CMPEQC(R10, 0x2, R11)
-		BT(R11, vertical_2)	|; 0
+		BT(R11, vertical_2)	|; 2
 		CMPEQC(R10, 0x3, R11)	
-		BT(R11, vertical_3)	|; 0
+		BT(R11, vertical_3)	|; 3
 		vertical_0:				|;case H0
 			LD(R15, 0x60, R11)		|; get table row0
 			CMOVE(OPEN_V0, R12)		|; get bit mask adr
@@ -198,6 +196,7 @@ connect:
 
 		
 	horizontal:	|; open horizontal connection
+		
 		|; Switch case
 		CMPEQC(R10, 0x0, R11)
 		BT(R11, horizontal_0)	|; 0
@@ -246,7 +245,6 @@ connect:
 	
 	
 perfect_maze:
-	|; connect test regs
 	|; for horizontal : R3 = R2 +-1
 	|; for vertical : R3 = R2 +-32
 		CMOVE(4,R2) 
