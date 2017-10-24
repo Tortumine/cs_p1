@@ -1,21 +1,26 @@
-|; TODO connect function push-pop 
 |; TODO :: modify code : literals to regs
+|; TODO :: clear unnecessary cont
+|; TODO MAYBE :: simplify using MOD function (cf main.asm)
+|; TODO MAYBE :: create swap function
 
-.macro OPEN_H_0() {LONG(0xFFFFFFE1)}
-.macro OPEN_H_1() {LONG(0xFFFFE1FF)}
-.macro OPEN_H_2() {LONG(0xFFE1FFFF)}
-.macro OPEN_H_3() {LONG(0xE1FFFFFF)}
+|; MACROS
+	|; macros to define bitmasks (cf connect function L ***LINENUMBER***)
+	.macro OPEN_H_0() {LONG(0xFFFFFFE1)}
+	.macro OPEN_H_1() {LONG(0xFFFFE1FF)}
+	.macro OPEN_H_2() {LONG(0xFFE1FFFF)}
+	.macro OPEN_H_3() {LONG(0xE1FFFFFF)}
 
-.macro OPEN_V_0() {LONG(0xFFFFFF00)}
-.macro OPEN_V_1() {LONG(0xFFFF00FF)}
-.macro OPEN_V_2() {LONG(0xFF00FFFF)}
-.macro OPEN_V_3() {LONG(0x00FFFFFF)}
+	.macro OPEN_V_0() {LONG(0xFFFFFF00)}
+	.macro OPEN_V_1() {LONG(0xFFFF00FF)}
+	.macro OPEN_V_2() {LONG(0xFF00FFFF)}
+	.macro OPEN_V_3() {LONG(0x00FFFFFF)}
 
-|; constants
+|; CONSTANTS
+|; needs to be edited
 H_LINE = 0xFFFFFFFF
 V_LINE = 0xC0C0C0C0
 NB_ROWS = 8
-NB_COLS = 32
+NB_COLS = 32 	|; needs to be edited
 NB_CELLS = 256
 WORDS_PER_MEM_LINE = 8
 MEM_LINES_PER_ROW = 8
@@ -93,14 +98,40 @@ RTN()
 |;tmp2 -> R12
 |;tmp3 -> R13
 |;tmp4 -> R14
-|;tmp5 -> R15
+|;tmp5 -> R15					= pointer to the word to edit
 
 connect:
 	PUSH(LP)
 	PUSH(BP)
 	MOVE(SP, BP)
 	ALLOCATE(20)
-	|; TODO :: create swap function
+	PUSH(R1)
+	PUSH(R2)
+	PUSH(R3)
+	PUSH(R4)
+	PUSH(R5)
+	PUSH(R6)
+	PUSH(R7)
+	PUSH(R8)
+	PUSH(R9)
+	PUSH(R10)
+	PUSH(R11)
+	PUSH(R12)
+	PUSH(R13)
+	PUSH(R14)
+	PUSH(R15)
+	PUSH(R16)
+	PUSH(R17)
+	PUSH(R18)
+	PUSH(R19)
+	PUSH(R20)
+	
+	|; Load Parameters
+	LD(BP, -12, R1) |;Get param Maze
+	LD(BP, -16, R2) |;Get param source
+	LD(BP, -20, R3)	|;Get param dest
+	LD(BP, -24, R4) |;Get param nb_cols
+
 	|; if(source > dest) -> swap
 	CMPLT(R3, R2, R11)			|;check if R2<R3
 	BEQ(R11, noswaplabel)		|; IF <R11>!=0 THEN PC <- LABEL
@@ -109,9 +140,9 @@ connect:
 		MOVE(R11,R2)
 	noswaplabel: 		|; no swap label
 
+	
 	DIVC(R3,NB_COLS,R5) 		|; dest_row = dest / nb_cols
 	MULC(R5,WORDS_PER_ROW,R6) 	|; row_offset = dest_row*WORDS_PER_ROW
-	
 	DIVC(R3,NB_COLS,R5) 		|; dest_row = dest / nb_cols
 	MULC(R5,WORDS_PER_ROW,R6) 	|; row_offset = dest_row*WORDS_PER_ROW
 	
@@ -136,15 +167,16 @@ connect:
 	MULC(R9,CELLS_PER_WORD,R15)
 	ADD(R15,R1,R15)
 	
-	|; vertical connection cf C L61->L75
-	|; [if(dest - source > 1)==>verical] <==> [if(dest - source <= 0)==>verical]
+	|; Branch depending on the orientation of the connection
+	|; [if(dest - source > 1)==>vertical] <==> [if(dest - source <= 0)==>verical]
 	SUB(R3, R2, R11)
 	CMPLEC(R11, 0x1, R11)
 	BEQ(R11, horizontal)
-
+	
+	|; vertical connection (cf perfect_mase.c L61->L75)
 	vertical:	|; open vertical connection
 		
-		|; Switch case
+		|; Switch case depending on the byte_offset
 		CMPEQC(R10, 0x0, R11)
 		BT(R11, vertical_0)	|; 0
 		CMPEQC(R10, 0x1, R11)	
@@ -200,7 +232,7 @@ connect:
 		
 	horizontal:	|; open horizontal connection
 		
-		|; Switch case
+		|; Switch case depending on the byte_offset
 		CMPEQC(R10, 0x0, R11)
 		BT(R11, horizontal_0)	|; 0
 		CMPEQC(R10, 0x1, R11)	
@@ -209,56 +241,82 @@ connect:
 		BT(R11, horizontal_2)	|; 2
 		CMPEQC(R10, 0x3, R11)	
 		BT(R11, horizontal_3)	|; 3
-		HALT()
 		horizontal_0:	|;case H0
 			LD(R15, 0x0, R11)		|; get table row0
 			CMOVE(OPEN_H0, R12)		|; get bit mask adr
 			LD(R12,0x0,R13)			|; get bit mask
 			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x0, R15)		| <RA>+0x0 <- <RC>	|; H'
-			ST(R14, 0x20, R15)		| <RA>+0x20 <- <RC>	|; H''
+			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>	|; H'
+			ST(R14, 0x20, R15)		|; <RA>+0x20 <- <RC>	|; H''
 			BEQ(R31, vhend)			|; quit the conditional structure
 		horizontal_1:	|;case H1	
 			LD(R15, 0x0, R11)		|; get table row0
 			CMOVE(OPEN_H1, R12)		|; get bit mask adr
 			LD(R12,0x0,R13)			|; get bit mask
 			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x0, R15)		| <RA>+0x0 <- <RC>	|; H'
-			ST(R14, 0x20, R15)		| <RA>+0x20 <- <RC>	|; H''
+			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>	|; H'
+			ST(R14, 0x20, R15)		|; <RA>+0x20 <- <RC>	|; H''
 			BEQ(R31, vhend)			|; quit the conditional structure
 		horizontal_2:	|;case H2		
 			LD(R15, 0x0, R11)		|; get table row0
 			CMOVE(OPEN_H2, R12)		|; get bit mask adr
 			LD(R12,0x0,R13)			|; get bit mask
 			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x0, R15)		| <RA>+0x0 <- <RC>	|; H'
-			ST(R14, 0x20, R15)		| <RA>+0x20 <- <RC>	|; H''
+			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>	|; H'
+			ST(R14, 0x20, R15)		|; <RA>+0x20 <- <RC>	|; H''
 			BEQ(R31, vhend)			|; quit the conditional structure
 		horizontal_3:	|;case H3
 			LD(R15, 0x0, R11)		|; get table row0
 			CMOVE(OPEN_H3, R12)		|; get bit mask adr
 			LD(R12,0x0,R13)			|; get bit mask
 			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x0, R15)		| <RA>+0x0 <- <RC>	|; H'
-			ST(R14, 0x20, R15)		| <RA>+0x20 <- <RC>	|; H''
+			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>	|; H'
+			ST(R14, 0x20, R15)		|; <RA>+0x20 <- <RC>	|; H''
 			BEQ(R31, vhend)			|; quit the conditional structure
 	vhend:	|; vertical horizontal end
 	
-	DEALLOCATE(20)
-		HALT()
+	|; exit operation
+	POP(R20)
+	POP(R19)
+	POP(R18)
+	POP(R17)
+	POP(R16)
+	POP(R15)
+	POP(R14)
+	POP(R13)
+	POP(R12)
+	POP(R11)
+	POP(R10)
+	POP(R9)
+	POP(R8)
+	POP(R7)
+	POP(R6)
+	POP(R5)
+	POP(R4)
+	POP(R3)
+	POP(R2)
+	POP(R1)
+	
+	MOVE(R31,r0) |; return 0x0
+	MOVE(BP,SP)
+	POP(BP)
+	POP(LP)
 	RTN()
 	
 	
 perfect_maze:
+	|; This is an example of connect function call
+	|; It requires 3 params
+	|; Source cell, Destination cell, Number of Columns
 	|; for horizontal : R3 = R2 +-1
 	|; for vertical : R3 = R2 +-32
 		CMOVE(2,R2) 
 		CMOVE(33,R3)
 		CMOVE(NB_COLS,R4)
+		PUSH(R4)	|;nb_cols
+		PUSH(R2)	|;source	
+		PUSH(R3)	|;dest
+		PUSH(R1)	|;maze
+		CALL(connect)	
+		DEALLOCATE(4)
 	
-	PUSH(R4)	|;nb_cols
-	PUSH(R2)	|;source	
-	PUSH(R3)	|;dest
-	PUSH(R1)	|;maze
-	CALL(connect)
-	DEALLOCATE(4)
