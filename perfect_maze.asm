@@ -20,6 +20,9 @@ CELLS_PER_WORD = 4
 
 .macro MODC(Ra, c, Rc) DIVC(Ra, c, Rc) MULC(Rc, c, Rc) SUB(Ra, Rc, Rc)
 
+neighbours__:
+	STORAGE(4)  |; 8 words saved for the visited bitmap
+
 |;Functions
 
 |;row_from_index
@@ -88,7 +91,7 @@ PUSH(BP)
 |;R3 	-> Cols
 |;R4 	-> Visited
 |;R5 	-> CurrentCell
-|;R6 	-> 
+|;R6 	-> n_valid_neighbours
 |;R7 	->
 |;R8 	->
 |;R9 	->
@@ -98,8 +101,28 @@ PUSH(BP)
 |;R13	-> tmp
 |;----------
 perfect_maze:
-
-|;need function stuff
+PUSH(LP)
+PUSH(BP)
+MOVE(SP, BP)
+PUSH(R1)
+PUSH(R2)
+PUSH(R3)
+PUSH(R4)
+PUSH(R5)
+PUSH(R6)
+PUSH(R7)
+PUSH(R8)
+PUSH(R9)
+PUSH(R10)
+PUSH(R11)
+PUSH(R12)
+PUSH(R13)
+.breakpoint
+LD(BP, -12, R1) |;Get params Maze
+LD(BP, -16, R2) |;Get params Rows
+LD(BP, -20, R3)	|;Get Cols Params
+LD(BP, -24, R4) |;Get Visited Params
+LD(BP, -28, R5) |;Get CurrentCell Params
 
 |; set current cell as visited
 |; Set mask
@@ -111,4 +134,26 @@ DIVC(R5, 32, R12)	|;R12 <- curr_cell / 32
 ADD(R4, R12, R12)	|;R12 <- visited[curr_cell / 32]
 LD(R12, 0, R13)		|;R13 <- &visited[curr_cell / 32]
 OR(R13, R11, R13)	|;visited[curr_cell /32] |= (1 << curr_cell % 32)
-ST(R13, 0, R12)		|;Save visited[curr_cell /32] |= (1 << curr_cell % 32) 
+ST(R13, 0, R12)		|;Save visited[curr_cell /32] |= (1 << curr_cell % 32)
+
+|;neighbours
+|;How manage that ?
+|;valid neighbours static array and array size
+CMOVE(neighbours__, R7)	|;int neighbours[4] 
+CMOVE(0, R6)		|;n_valid_neighbours = 0; 
+
+|;Check for left neighbour
+|;int col = col_from_index(curr_cell, nb_cols);
+|;index % nb_cols;
+MOD(R5, R3, R11)	|;int col = index % nb_cols
+|;if (col > 0)
+CMPLEC(R11, 0, R11)	|;if (col <= 0)
+BNE(R11, noleft)	|;if R11 != 0 then col <= 0 then col !> 0
+|;neighbours[n_valid_neighbours++] = curr_cell - 1;
+MULC(R6, 4, R11)	|;n_Valid_neighbours * 4 -> determiner offset in memory
+LD(R11, 0, R12)		|;Load Register
+SUBC(R5, 1, R12)	|;loaded Register <- curr_cell -1
+ST(R12, 0, R11)		|;save register
+ADDC(R6, 1, R6)		|;n_valid_neighbours++
+noleft:
+ADDC(R31, 0xDEADCAFE, R13)	|;just test condition
