@@ -91,7 +91,6 @@ main__:
 	PUSH(R1) |; Maze
 	CALL(perfect_maze)
 	DEALLOCATE(5)
-	HALT()
 
 .include perfect_maze.asm
 
