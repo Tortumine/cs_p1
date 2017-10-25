@@ -1,4 +1,5 @@
 |; TODO :: modify code : literals to regs
+|; TODO :: ADD AS MUCH MACROS AS YOU CAN
 |; TODO :: clear unnecessary cont
 |; TODO MAYBE :: simplify connect() using MOD function (cf main.asm)
 |; TODO MAYBE :: create swap function
