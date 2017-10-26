@@ -1,10 +1,16 @@
-|; TODO :: modify code : literals to regs
 |; TODO :: ADD AS MUCH MACROS AS YOU CAN
+|; TODO :: after jon's merge clean unnecessary CONSTANTS
 |; TODO :: clear unnecessary cont
-|; TODO MAYBE :: simplify connect() using MOD function (cf main.asm)
+|; TODO :: find a better name for the "STUFF" part
 |; TODO MAYBE :: create swap function
 
+|;*****************************************************************************
 |; MACROS
+|;*****************************************************************************
+	
+		|; Reg[Rc] <- Reg[Ra] mod C (Rc should be different from Ra)
+	.macro MODC(Ra, C, Rc) DIVC(Ra, C, Rc) MULC(Rc, C, Rc) SUB(Ra, Rc, Rc)
+
 	|; macros to define bitmasks (cf connect() L ***LINENUMBER***)
 	.macro OPEN_H_0() {LONG(0xFFFFFFE1)}
 	.macro OPEN_H_1() {LONG(0xFFFFE1FF)}
@@ -15,9 +21,35 @@
 	.macro OPEN_V_1() {LONG(0xFFFF00FF)}
 	.macro OPEN_V_2() {LONG(0xFF00FFFF)}
 	.macro OPEN_V_3() {LONG(0x00FFFFFF)}
-
+	
+	|; Horizontal opening macro
+	|; 	Get the name of the caller and create an opening at the corresponding address
+	.macro HOR(C){
+		LD(R15, 0x0, R11)			|; get table row0
+			CMOVE(C, R12)		|; get bit mask adr
+			LD(R12,0x0,R13)			|; get bit mask
+			AND(R11, R13, R14)		|; 			
+			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>		|; H'
+			ST(R14, 0x20, R15)		|; <RA>+0x20 <- <RC>	|; H''
+	}
+	|; Vertical opening macro
+	|; Get the name of the caller and create an opening at the corresponding address
+	.macro VER(C){
+		LD(R15, 0x60, R11)		|; get table row0
+			CMOVE(C, R12)		|; get bit mask adr
+			LD(R12,0x0,R13)			|; get bit mask
+			AND(R11, R13, R14)		|; 			
+			ST(R14, 0x60, R15)		
+			ST(R14, 0x80, R15)		
+			ST(R14, 0xA0, R15)
+			ST(R14, 0xC0, R15)			
+	}
+	
+|;*****************************************************************************
 |; CONSTANTS
-|; needs to be edited
+|;*****************************************************************************
+
+|; cf C code
 H_LINE = 0xFFFFFFFF
 V_LINE = 0xC0C0C0C0
 NB_ROWS = 8
@@ -29,6 +61,11 @@ WORDS_PER_ROW = 64
 NB_MAZE_WORDS = 512 
 CELLS_PER_WORD = 4
 
+|;*****************************************************************************
+|; STUFF
+|;*****************************************************************************
+
+|; callers for LONG bit-masks
 OPEN_H0:
     OPEN_H_0()
 OPEN_H1:
@@ -46,12 +83,22 @@ OPEN_V2:
     OPEN_V_2()
 OPEN_V3:
     OPEN_V_3()
-
+|;*****************************************************************************
 |;FUNCTIONS
+|;*****************************************************************************
 
-|;----------
-|;connect
-|;----------
+
+|;---------------------------------------------------------
+|; connect ( maze, source, destination, number of columns )
+|;---------------------------------------------------------
+|;	DESCRIPTION
+|;		This function get an origin cell, a destination cell and horizontal length of the maze
+|;		The origin and the destination cells must be neighbours
+|;		
+|;		This function modify the memory to create a connexion between the origin and the destination 
+|;		
+|;		It always return 0x0
+|;		
 |;	PARAMETERS
 |;		maze: address of the first word of the maze
 |;		source : cell number of the present location in the maze
@@ -70,17 +117,17 @@ OPEN_V3:
 |;		word_offset_in_line -> R8		= source_col / CELLS_PER_WORD
 |;		word_offset -> R9				= row_offset + word_offset_in_line
 |;		byte_offset -> R10				= source_col % CELLS_PER_WORD
-|;----------
-|;TMP vars
-|;----------
-|;tmp1 -> R11
-|;tmp2 -> R12
-|;tmp3 -> R13
-|;tmp4 -> R14
-|;tmp5 -> R15		= pointer to the first word to edit
+|;		----------
+|;		TMP vars
+|;		----------
+|;		tmp1 -> R11
+|;		tmp2 -> R12
+|;		tmp3 -> R13
+|;		tmp4 -> R14
+|;		tmp5 -> R15		= pointer to the first word to edit
 
 connect:
-|; Saving local variables
+|; Saving local variables form the caller
 	PUSH(LP)
 	PUSH(BP)
 	MOVE(SP, BP)
@@ -101,10 +148,6 @@ connect:
 	PUSH(R14)
 	PUSH(R15)
 	PUSH(R16)
-	PUSH(R17)
-	PUSH(R18)
-	PUSH(R19)
-	PUSH(R20)
 	
 	|; Load Parameters
 	LD(BP, -12, R1) |;Get param Maze
@@ -118,30 +161,17 @@ connect:
 		MOVE(R3, R11)
 		MOVE(R2, R3)
 		MOVE(R11,R2)
-	noswaplabel: 		|; no swap label
+	noswaplabel: 				|; no swap label
 
-	
-	DIV(R3,R4,R5) 		|; dest_row = dest / nb_cols
+	|; Offset calculation
+	DIV(R3,R4,R5) 				|; dest_row = dest / nb_cols
 	MULC(R5,WORDS_PER_ROW,R6) 	|; row_offset = dest_row*WORDS_PER_ROW
-	DIV(R3,R4,R5) 		|; dest_row = dest / nb_cols
+	DIV(R3,R4,R5) 				|; dest_row = dest / nb_cols
 	MULC(R5,WORDS_PER_ROW,R6) 	|; row_offset = dest_row*WORDS_PER_ROW
-	
-	|; source_col = source % nb_cols
-	|; R7 = R2 % nb_cols
-	|; a % n = a - (n * int(a/n)) 
-	|; ==> source % nb_cols = source - (nb_cols * int(source/nb_cols))
-	DIV(R2,R4,R7) 		|; ans = source / nb_cols
-	MUL(R7,R4,R7)			|; ans = ans * nb_cols
-	SUB(R2, R7, R7)				|; source_col = source - ans
-	
+	MOD(R2,R4,R7)				|; source_col = source % nb_cols
 	DIVC(R7,CELLS_PER_WORD,R8)	|; word_offset_in_line = source_col / CELLS_PER_WORD
-	ADD(R6, R8, R9)				|; word_offset = row_offset + word_offset_in_line
-	
-	|; byte_offset = source_col % CELLS_PER_WORD
-	|; R10 = R7 % CELLS_PER_WORD
-	DIVC(R7,CELLS_PER_WORD,R10) |; ans = source_col / CELLS_PER_WORD
-	MULC(R10,CELLS_PER_WORD,R10)|; ans = ans * CELLS_PER_WORD
-	SUB(R7, R10, R10)			|; source_col = source_col - ans
+	ADD(R6, R8, R9)				|; word_offset = row_offset + word_offset_in_line	
+	MODC(R7,CELLS_PER_WORD,R10)	|; byte_offset = source_col % CELLS_PER_WORD
 	
 	|; R15 =  WORDS_PER_MEM_LINE * word_offset + source
 	MULC(R9,CELLS_PER_WORD,R15)
@@ -165,48 +195,20 @@ connect:
 		BT(R11, vertical_2)	|; 2
 		CMPEQC(R10, 0x3, R11)	
 		BT(R11, vertical_3)	|; 3
-		vertical_0:				|;case H0
-			LD(R15, 0x60, R11)		|; get table row0
-			CMOVE(OPEN_V0, R12)		|; get bit mask adr
-			LD(R12,0x0,R13)			|; get bit mask
-			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x60, R15)		
-			ST(R14, 0x80, R15)		
-			ST(R14, 0xA0, R15)
-			ST(R14, 0xC0, R15)			
+		vertical_0:				|;case V0
+			VER(OPEN_V0)			|; call the macro for vertical opening
 			BEQ(R31, vhend)			|; quit the conditional structure
 			
-		vertical_1:				|;case H1	
-			LD(R15, 0x60, R11)		|; get table row0
-			CMOVE(OPEN_V1, R12)		|; get bit mask adr
-			LD(R12,0x0,R13)			|; get bit mask
-			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x60, R15)		
-			ST(R14, 0x80, R15)		
-			ST(R14, 0xA0, R15)
-			ST(R14, 0xC0, R15)		
+		vertical_1:				|;case V1	
+			VER(OPEN_V1)			|; call the macro for vertical opening
+			BEQ(R31, vhend)			|; quit the conditional structure
+		
+		vertical_2:				|;case V2
+			VER(OPEN_V2)			|; call the macro for vertical opening
 			BEQ(R31, vhend)			|; quit the conditional structure
 			
-		vertical_2:				|;case H2
-			LD(R15, 0x60, R11)		|; get table row0
-			CMOVE(OPEN_V2, R12)		|; get bit mask adr
-			LD(R12,0x0,R13)			|; get bit mask
-			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x60, R15)		
-			ST(R14, 0x80, R15)		
-			ST(R14, 0xA0, R15)
-			ST(R14, 0xC0, R15)			
-			BEQ(R31, vhend)			|; quit the conditional structure
-			
-		vertical_3:				|;case H3
-			LD(R15, 0x60, R11)		|; get table row0
-			CMOVE(OPEN_V3, R12)		|; get bit mask adr
-			LD(R12,0x0,R13)			|; get bit mask
-			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x60, R15)		
-			ST(R14, 0x80, R15)		
-			ST(R14, 0xA0, R15)
-			ST(R14, 0xC0, R15)			
+		vertical_3:				|;case V3
+			VER(OPEN_V3)			|; call the macro for vertical opening
 			BEQ(R31, vhend)			|; quit the conditional structure
 
 		
@@ -214,52 +216,33 @@ connect:
 		
 		|; Switch case depending on the byte_offset
 		CMPEQC(R10, 0x0, R11)
-		BT(R11, horizontal_0)	|; 0
+		BT(R11, horizontal_0)|; 0
 		CMPEQC(R10, 0x1, R11)	
-		BT(R11, horizontal_1)	|; 1
+		BT(R11, horizontal_1)|; 1
 		CMPEQC(R10, 0x2, R11)	
-		BT(R11, horizontal_2)	|; 2
+		BT(R11, horizontal_2)|; 2
 		CMPEQC(R10, 0x3, R11)	
-		BT(R11, horizontal_3)	|; 3
-		horizontal_0:	|;case H0
-			LD(R15, 0x0, R11)		|; get table row0
-			CMOVE(OPEN_H0, R12)		|; get bit mask adr
-			LD(R12,0x0,R13)			|; get bit mask
-			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>	|; H'
-			ST(R14, 0x20, R15)		|; <RA>+0x20 <- <RC>	|; H''
+		BT(R11, horizontal_3)|; 3
+		
+		horizontal_0:			|;case H0
+			HOR(OPEN_H0)			|; call the macro for horizontal opening
 			BEQ(R31, vhend)			|; quit the conditional structure
-		horizontal_1:	|;case H1	
-			LD(R15, 0x0, R11)		|; get table row0
-			CMOVE(OPEN_H1, R12)		|; get bit mask adr
-			LD(R12,0x0,R13)			|; get bit mask
-			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>	|; H'
-			ST(R14, 0x20, R15)		|; <RA>+0x20 <- <RC>	|; H''
+			
+		horizontal_1:			|;case H1	
+			HOR(OPEN_H1)			|; call the macro for horizontal opening
 			BEQ(R31, vhend)			|; quit the conditional structure
-		horizontal_2:	|;case H2		
-			LD(R15, 0x0, R11)		|; get table row0
-			CMOVE(OPEN_H2, R12)		|; get bit mask adr
-			LD(R12,0x0,R13)			|; get bit mask
-			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>	|; H'
-			ST(R14, 0x20, R15)		|; <RA>+0x20 <- <RC>	|; H''
+			
+		horizontal_2:			|;case H2		
+			HOR(OPEN_H2)			|; call the macro for horizontal opening
 			BEQ(R31, vhend)			|; quit the conditional structure
-		horizontal_3:	|;case H3
-			LD(R15, 0x0, R11)		|; get table row0
-			CMOVE(OPEN_H3, R12)		|; get bit mask adr
-			LD(R12,0x0,R13)			|; get bit mask
-			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>	|; H'
-			ST(R14, 0x20, R15)		|; <RA>+0x20 <- <RC>	|; H''
+			
+		horizontal_3:			|;case H3
+			HOR(OPEN_H3)			|; call the macro for horizontal opening
 			BEQ(R31, vhend)			|; quit the conditional structure
+			
 	vhend:	|; vertical horizontal end
 	
-	|; exit operation
-	POP(R20)
-	POP(R19)
-	POP(R18)
-	POP(R17)
+	|; exit operations
 	POP(R16)
 	POP(R15)
 	POP(R14)
@@ -290,13 +273,11 @@ perfect_maze:
 	|; Source cell, Destination cell, Number of Columns
 	|; for horizontal : R3 = R2 +-1
 	|; for vertical : R3 = R2 +-32
-		CMOVE(3,R2) 
-		CMOVE(33,R3)
+		CMOVE(0,R2) 
+		CMOVE(32,R3)
 		CMOVE(NB_COLS,R4)
 		PUSH(R4)	|;nb_cols
 		PUSH(R3)	|;source	
 		PUSH(R2)	|;dest
 		PUSH(R1)	|;maze
-		CALL(connect)	
-		DEALLOCATE(4)
-	
+		CALL(connect)
