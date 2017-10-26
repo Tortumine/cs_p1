@@ -1,9 +1,16 @@
-|; TODO :: modify code : literals to regs
 |; TODO :: ADD AS MUCH MACROS AS YOU CAN
+|; TODO :: after jon's merge clean unnecessary CONSTANTS
 |; TODO :: clear unnecessary cont
+|; TODO :: find a better name for the "STUFF" part
 |; TODO MAYBE :: create swap function
 
+|;*****************************************************************************
 |; MACROS
+|;*****************************************************************************
+	
+		|; Reg[Rc] <- Reg[Ra] mod C (Rc should be different from Ra)
+	.macro MODC(Ra, C, Rc) DIVC(Ra, C, Rc) MULC(Rc, C, Rc) SUB(Ra, Rc, Rc)
+
 	|; macros to define bitmasks (cf connect() L ***LINENUMBER***)
 	.macro OPEN_H_0() {LONG(0xFFFFFFE1)}
 	.macro OPEN_H_1() {LONG(0xFFFFE1FF)}
@@ -14,12 +21,9 @@
 	.macro OPEN_V_1() {LONG(0xFFFF00FF)}
 	.macro OPEN_V_2() {LONG(0xFF00FFFF)}
 	.macro OPEN_V_3() {LONG(0x00FFFFFF)}
-
-	|; Reg[Rc] <- Reg[Ra] mod C (Rc should be different from Ra)
-	.macro MODC(Ra, C, Rc) DIVC(Ra, C, Rc) MULC(Rc, C, Rc) SUB(Ra, Rc, Rc)
 	
 	|; Horizontal opening macro
-	|; Get the name of the caller and create an opening at the corresponding address
+	|; 	Get the name of the caller and create an opening at the corresponding address
 	.macro HOR(C){
 		LD(R15, 0x0, R11)			|; get table row0
 			CMOVE(C, R12)		|; get bit mask adr
@@ -40,8 +44,11 @@
 			ST(R14, 0xA0, R15)
 			ST(R14, 0xC0, R15)			
 	}
-
+	
+|;*****************************************************************************
 |; CONSTANTS
+|;*****************************************************************************
+
 |; cf C code
 H_LINE = 0xFFFFFFFF
 V_LINE = 0xC0C0C0C0
@@ -53,6 +60,10 @@ MEM_LINES_PER_ROW = 8
 WORDS_PER_ROW = 64
 NB_MAZE_WORDS = 512 
 CELLS_PER_WORD = 4
+
+|;*****************************************************************************
+|; STUFF
+|;*****************************************************************************
 
 |; callers for LONG bit-masks
 OPEN_H0:
@@ -72,13 +83,15 @@ OPEN_V2:
     OPEN_V_2()
 OPEN_V3:
     OPEN_V_3()
-
+|;*****************************************************************************
 |;FUNCTIONS
+|;*****************************************************************************
 
-|;----------
-|;connect
-|;----------
-|;	FUNCTION
+
+|;---------------------------------------------------------
+|; connect ( maze, source, destination, number of columns )
+|;---------------------------------------------------------
+|;	DESCRIPTION
 |;		This function get an origin cell, a destination cell and horizontal length of the maze
 |;		The origin and the destination cells must be neighbours
 |;		
