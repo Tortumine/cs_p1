@@ -1,7 +1,6 @@
 |; TODO :: modify code : literals to regs
 |; TODO :: ADD AS MUCH MACROS AS YOU CAN
 |; TODO :: clear unnecessary cont
-|; TODO MAYBE :: simplify connect() using MOD function (cf main.asm)
 |; TODO MAYBE :: create swap function
 
 |; MACROS
@@ -15,6 +14,9 @@
 	.macro OPEN_V_1() {LONG(0xFFFF00FF)}
 	.macro OPEN_V_2() {LONG(0xFF00FFFF)}
 	.macro OPEN_V_3() {LONG(0x00FFFFFF)}
+
+	|; Reg[Rc] <- Reg[Ra] mod C (Rc should be different from Ra)
+	.macro MODC(Ra, C, Rc) DIVC(Ra, C, Rc) MULC(Rc, C, Rc) SUB(Ra, Rc, Rc)
 
 |; CONSTANTS
 |; needs to be edited
@@ -126,22 +128,14 @@ connect:
 	DIV(R3,R4,R5) 		|; dest_row = dest / nb_cols
 	MULC(R5,WORDS_PER_ROW,R6) 	|; row_offset = dest_row*WORDS_PER_ROW
 	
-	|; source_col = source % nb_cols
-	|; R7 = R2 % nb_cols
-	|; a % n = a - (n * int(a/n)) 
-	|; ==> source % nb_cols = source - (nb_cols * int(source/nb_cols))
-	DIV(R2,R4,R7) 		|; ans = source / nb_cols
-	MUL(R7,R4,R7)			|; ans = ans * nb_cols
-	SUB(R2, R7, R7)				|; source_col = source - ans
+	
+	MOD(R2,R4,R7)				|; source_col = source % nb_cols
 	
 	DIVC(R7,CELLS_PER_WORD,R8)	|; word_offset_in_line = source_col / CELLS_PER_WORD
 	ADD(R6, R8, R9)				|; word_offset = row_offset + word_offset_in_line
 	
-	|; byte_offset = source_col % CELLS_PER_WORD
-	|; R10 = R7 % CELLS_PER_WORD
-	DIVC(R7,CELLS_PER_WORD,R10) |; ans = source_col / CELLS_PER_WORD
-	MULC(R10,CELLS_PER_WORD,R10)|; ans = ans * CELLS_PER_WORD
-	SUB(R7, R10, R10)			|; source_col = source_col - ans
+	
+	MODC(R7,CELLS_PER_WORD,R10)	|; byte_offset = source_col % CELLS_PER_WORD
 	
 	|; R15 =  WORDS_PER_MEM_LINE * word_offset + source
 	MULC(R9,CELLS_PER_WORD,R15)
@@ -290,6 +284,7 @@ perfect_maze:
 	|; Source cell, Destination cell, Number of Columns
 	|; for horizontal : R3 = R2 +-1
 	|; for vertical : R3 = R2 +-32
+	.breakpoint
 		CMOVE(3,R2) 
 		CMOVE(33,R3)
 		CMOVE(NB_COLS,R4)
