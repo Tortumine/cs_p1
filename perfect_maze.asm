@@ -54,6 +54,14 @@ OPEN_V3:
 |;----------
 |;connect
 |;----------
+|;	FUNCTION
+|;		This function get an origin cell, a destination cell and horizontal length of the maze
+|;		The origin and the destination cells must be neighbours
+|;		
+|;		This function modify the memory to create a connexion between the origin and the destination 
+|;		
+|;		It always return 0x0
+|;		
 |;	PARAMETERS
 |;		maze: address of the first word of the maze
 |;		source : cell number of the present location in the maze
@@ -72,17 +80,17 @@ OPEN_V3:
 |;		word_offset_in_line -> R8		= source_col / CELLS_PER_WORD
 |;		word_offset -> R9				= row_offset + word_offset_in_line
 |;		byte_offset -> R10				= source_col % CELLS_PER_WORD
-|;----------
-|;TMP vars
-|;----------
-|;tmp1 -> R11
-|;tmp2 -> R12
-|;tmp3 -> R13
-|;tmp4 -> R14
-|;tmp5 -> R15		= pointer to the first word to edit
+|;		----------
+|;		TMP vars
+|;		----------
+|;		tmp1 -> R11
+|;		tmp2 -> R12
+|;		tmp3 -> R13
+|;		tmp4 -> R14
+|;		tmp5 -> R15		= pointer to the first word to edit
 
 connect:
-|; Saving local variables
+|; Saving local variables form the caller
 	PUSH(LP)
 	PUSH(BP)
 	MOVE(SP, BP)
@@ -103,10 +111,6 @@ connect:
 	PUSH(R14)
 	PUSH(R15)
 	PUSH(R16)
-	PUSH(R17)
-	PUSH(R18)
-	PUSH(R19)
-	PUSH(R20)
 	
 	|; Load Parameters
 	LD(BP, -12, R1) |;Get param Maze
@@ -120,21 +124,16 @@ connect:
 		MOVE(R3, R11)
 		MOVE(R2, R3)
 		MOVE(R11,R2)
-	noswaplabel: 		|; no swap label
+	noswaplabel: 				|; no swap label
 
-	
-	DIV(R3,R4,R5) 		|; dest_row = dest / nb_cols
+	|; Offset calculation
+	DIV(R3,R4,R5) 				|; dest_row = dest / nb_cols
 	MULC(R5,WORDS_PER_ROW,R6) 	|; row_offset = dest_row*WORDS_PER_ROW
-	DIV(R3,R4,R5) 		|; dest_row = dest / nb_cols
+	DIV(R3,R4,R5) 				|; dest_row = dest / nb_cols
 	MULC(R5,WORDS_PER_ROW,R6) 	|; row_offset = dest_row*WORDS_PER_ROW
-	
-	
 	MOD(R2,R4,R7)				|; source_col = source % nb_cols
-	
 	DIVC(R7,CELLS_PER_WORD,R8)	|; word_offset_in_line = source_col / CELLS_PER_WORD
-	ADD(R6, R8, R9)				|; word_offset = row_offset + word_offset_in_line
-	
-	
+	ADD(R6, R8, R9)				|; word_offset = row_offset + word_offset_in_line	
 	MODC(R7,CELLS_PER_WORD,R10)	|; byte_offset = source_col % CELLS_PER_WORD
 	
 	|; R15 =  WORDS_PER_MEM_LINE * word_offset + source
@@ -220,7 +219,7 @@ connect:
 			CMOVE(OPEN_H0, R12)		|; get bit mask adr
 			LD(R12,0x0,R13)			|; get bit mask
 			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>	|; H'
+			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>		|; H'
 			ST(R14, 0x20, R15)		|; <RA>+0x20 <- <RC>	|; H''
 			BEQ(R31, vhend)			|; quit the conditional structure
 		horizontal_1:	|;case H1	
@@ -228,7 +227,7 @@ connect:
 			CMOVE(OPEN_H1, R12)		|; get bit mask adr
 			LD(R12,0x0,R13)			|; get bit mask
 			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>	|; H'
+			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>		|; H'
 			ST(R14, 0x20, R15)		|; <RA>+0x20 <- <RC>	|; H''
 			BEQ(R31, vhend)			|; quit the conditional structure
 		horizontal_2:	|;case H2		
@@ -236,7 +235,7 @@ connect:
 			CMOVE(OPEN_H2, R12)		|; get bit mask adr
 			LD(R12,0x0,R13)			|; get bit mask
 			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>	|; H'
+			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>		|; H'
 			ST(R14, 0x20, R15)		|; <RA>+0x20 <- <RC>	|; H''
 			BEQ(R31, vhend)			|; quit the conditional structure
 		horizontal_3:	|;case H3
@@ -244,16 +243,12 @@ connect:
 			CMOVE(OPEN_H3, R12)		|; get bit mask adr
 			LD(R12,0x0,R13)			|; get bit mask
 			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>	|; H'
+			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>		|; H'
 			ST(R14, 0x20, R15)		|; <RA>+0x20 <- <RC>	|; H''
 			BEQ(R31, vhend)			|; quit the conditional structure
 	vhend:	|; vertical horizontal end
 	
-	|; exit operation
-	POP(R20)
-	POP(R19)
-	POP(R18)
-	POP(R17)
+	|; exit operations
 	POP(R16)
 	POP(R15)
 	POP(R14)
