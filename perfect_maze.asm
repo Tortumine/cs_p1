@@ -51,6 +51,15 @@
 			ST(R14, 0xA0, R15)
 			ST(R14, 0xC0, R15)			
 	}
+	|;Get value of a cell the array in ram : Rb = Ra[Rb]
+	|;Ra : Pointers of Array in ram 
+	|;Rb : cell
+	|;return value
+	.macro ARRAY(Ra, Rb, Rc){
+		MULC(Rb, 4, Rc)	|;Multiply cell by for to obtain offset memory
+		ADD(Ra, Rb, Ra)	|;Add offset to pointers of array 
+		LD(Ra, 0, Rc)	|;return value of cell
+	}
 	
 |;*****************************************************************************
 |; CONSTANTS
@@ -350,8 +359,7 @@ MOD(R5, R3, R10)	|;int col = index % nb_cols
 CMPLEC(R10, 0, R11)	|;if (col <= 0)
 BNE(R11, noleft)	|;if R11 != 0 then col <= 0 then col !> 0
 |;neighbours[n_valid_neighbours++] = curr_cell - 1;
-MULC(R6, 4, R11)	|;n_Valid_neighbours * 4 -> determiner offset in memory
-LD(R11, 0, R12)		|;Load Register
+ARRAY(R7, R6, R12)
 SUBC(R5, 1, R12)	|;loaded Register <- curr_cell -1
 ST(R12, 0, R11)		|;save register
 ADDC(R6, 1, R6)		|;n_valid_neighbours++
@@ -362,9 +370,7 @@ SUBC(R3, 1, R11)	|;R11 <- nb_cols - 1
 CMPLT(R10, R11, R11)	|;R11 <- if(col<nb_cols-1)
 BEQ(R11, noright)	|;if !(col < nb_cols -1) go to label
 |;neighbours[n_valid_neighbours++] = curr_cell + 1;
-MULC(R6, 4, R11)	|;n_Valid_neighbours * 4 -> determiner offset in memory
-			|; Add Register adresse + offset
-LD(R11, 0, R12)		|;Load Register
+ARRAY(R7, R6, R12)
 ADDC(R5, 1, R12)	|;loaded Register <- curr_cell + 1
 ST(R12, 0, R11)		|;save register
 ADDC(R6, 1, R6)		|;n_valid_neighbours++
@@ -376,8 +382,7 @@ DIV(R5, R3, R10)	|;return index / nb_cols;
 CMPLEC(R10, 0, R11)
 BNE(R11, notop)
 |;neighbours[n_valid_neighbours++] = curr_cell - nb_cols;
-MULC(R6, 4, R11)	|;n_Valid_neighbours * 4 -> determiner offset in memory
-LD(R11, 0, R12)		|;Load Register
+ARRAY(R7, R6, R12)
 SUB(R5, R3, R12)	|;loaded Register <- curr_cell - nb_cols
 ST(R12, 0, R11)		|;save register
 ADDC(R6, 1, R6)		|;n_valid_neighbours++
@@ -388,8 +393,7 @@ SUBC(R2, 1, R11) 	|;R11 <- nb_rows - 1
 CMPLT(R10, R11, R11)	|;R11 <- row < nb_rows - 1
 BEQ(R11, nobottom)
 |;neighbours[n_valid_neighbours++] = curr_cell + nb_cols;
-MULC(R6, 4, R11)	|;n_Valid_neighbours * 4 -> determiner offset in memory
-LD(R11, 0, R12)		|;Load Register
+ARRAY(R7, R6, R12)
 ADD(R5, R3, R12)	|;loaded Register <- curr_cell + nb_cols
 ST(R12, 0, R11)		|;save register
 ADDC(R6, 1, R6)		|;n_valid_neighbours++
@@ -404,9 +408,7 @@ BNE(R11, endwhile)
 RANDOM()
 MOD(R0, R6, R9) 	|;
 |;int neighbour = neighbours[random_neigh_index];
-MULC(R9, 4, R11)	|;random_neigh_index * 4 -> determiner offset in memory
-ADD(R7, R11, R11)	|;Add offset to adresse 
-LD(R11, 0, R8)		|;R8 <- Neighbour
+ARRAY(R7, R7, R8)
 |;swap(neighbours + n_valid_neighbours - 1, neighbours + random_neigh_index);
 
 |;n_valid_neighbours--;
