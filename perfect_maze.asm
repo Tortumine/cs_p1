@@ -452,5 +452,25 @@ DEALLOCATE(5)
 BR(while)
 
 endwhile:
-|;TODO make return
+	POP(R13)
+	POP(R12)
+	POP(R11)
+	POP(R10)
+	POP(R9)
+	POP(R8)
+	POP(R7)
+	POP(R6)
+	POP(R5)
+	POP(R4)
+	POP(R3)
+	POP(R2)
+	POP(R1)
+	
+	MOVE(R31,r0) |; return 0x0
+	MOVE(BP,SP)
+	POP(BP)
+	POP(LP)
+	RTN()
+
+
 ADDC(R31, 0xDEADCAFE, R13)	|;just test condition
