@@ -55,10 +55,15 @@
 	|;Ra : Pointers of Array in ram 
 	|;Rb : cell
 	|;return value
-	.macro ARRAY(Ra, Rb, Rc){
+	.macro Get_Cel_Array(Ra, Rb, Rc){
 		MULC(Rb, 4, Rc)	|;Multiply cell by for to obtain offset memory
 		ADD(Ra, Rb, Ra)	|;Add offset to pointers of array 
 		LD(Ra, 0, Rc)	|;return value of cell
+	}
+	.macro Set_Cel_Array(Ra, Rb, Rc){
+		MULC(Rb, 4, Rc)	|;Multiply cell by for to obtain offset memory
+		ADD(Ra, Rb, Ra)	|;Add offset to pointers of array 
+		ST(Ra, 0, Rc)	|;save register
 	}
 	
 |;*****************************************************************************
@@ -359,7 +364,7 @@ MOD(R5, R3, R10)	|;int col = index % nb_cols
 CMPLEC(R10, 0, R11)	|;if (col <= 0)
 BNE(R11, noleft)	|;if R11 != 0 then col <= 0 then col !> 0
 |;neighbours[n_valid_neighbours++] = curr_cell - 1;
-ARRAY(R7, R6, R12)
+Get_Cel_Array(R7, R6, R12)
 SUBC(R5, 1, R12)	|;loaded Register <- curr_cell -1
 ST(R12, 0, R11)		|;save register
 ADDC(R6, 1, R6)		|;n_valid_neighbours++
@@ -370,7 +375,7 @@ SUBC(R3, 1, R11)	|;R11 <- nb_cols - 1
 CMPLT(R10, R11, R11)	|;R11 <- if(col<nb_cols-1)
 BEQ(R11, noright)	|;if !(col < nb_cols -1) go to label
 |;neighbours[n_valid_neighbours++] = curr_cell + 1;
-ARRAY(R7, R6, R12)
+Get_Cel_Array(R7, R6, R12)
 ADDC(R5, 1, R12)	|;loaded Register <- curr_cell + 1
 ST(R12, 0, R11)		|;save register
 ADDC(R6, 1, R6)		|;n_valid_neighbours++
@@ -382,7 +387,7 @@ DIV(R5, R3, R10)	|;return index / nb_cols;
 CMPLEC(R10, 0, R11)
 BNE(R11, notop)
 |;neighbours[n_valid_neighbours++] = curr_cell - nb_cols;
-ARRAY(R7, R6, R12)
+Get_Cel_Array(R7, R6, R12)
 SUB(R5, R3, R12)	|;loaded Register <- curr_cell - nb_cols
 ST(R12, 0, R11)		|;save register
 ADDC(R6, 1, R6)		|;n_valid_neighbours++
@@ -393,7 +398,7 @@ SUBC(R2, 1, R11) 	|;R11 <- nb_rows - 1
 CMPLT(R10, R11, R11)	|;R11 <- row < nb_rows - 1
 BEQ(R11, nobottom)
 |;neighbours[n_valid_neighbours++] = curr_cell + nb_cols;
-ARRAY(R7, R6, R12)
+Get_Cel_Array(R7, R6, R12)
 ADD(R5, R3, R12)	|;loaded Register <- curr_cell + nb_cols
 ST(R12, 0, R11)		|;save register
 ADDC(R6, 1, R6)		|;n_valid_neighbours++
@@ -408,9 +413,13 @@ BNE(R11, endwhile)
 RANDOM()
 MOD(R0, R6, R9) 	|;
 |;int neighbour = neighbours[random_neigh_index];
-ARRAY(R7, R7, R8)
+Get_Cel_Array(R7, R7, R8)
 |;swap(neighbours + n_valid_neighbours - 1, neighbours + random_neigh_index);
-
+SUBC(R6, 1, R11)
+Get_Cell_Array(R7, R11, R12)
+Get_Cell_Array(R7, R9, R13)
+Set_Cell_Array(R7, R9, R12)
+Set_Cell_Array(R7, R11, R13)
 |;n_valid_neighbours--;
 SUBC(R6, 1, R6)
 |;int visited_bit = (visited[neighbour / 32] >> (neighbour % 32)) & 1; 
@@ -471,6 +480,3 @@ endwhile:
 	POP(BP)
 	POP(LP)
 	RTN()
-
-
-ADDC(R31, 0xDEADCAFE, R13)	|;just test condition
