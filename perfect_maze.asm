@@ -22,6 +22,14 @@
 	.macro OPEN_V_2() {LONG(0xFF00FFFF)}
 	.macro OPEN_V_3() {LONG(0x00FFFFFF)}
 	
+	|; Swap registers macro
+	|; get 3 regs Ra Rb and Rtmp , switch Ra and Rb
+	.macro SWITCH(Ra,Rb,Rtmp){
+		MOVE(Ra, Rtmp)
+		MOVE(Rb, Ra)
+		MOVE(Rtmp,Rb)
+	}
+	
 	|; Horizontal opening macro
 	|; 	Get the name of the caller and create an opening at the corresponding address
 	.macro HOR(C){
@@ -158,9 +166,7 @@ connect:
 	|; if(source > dest) -> swap
 	CMPLT(R3, R2, R11)			|;check if R2<R3
 	BEQ(R11, noswaplabel)		|; IF <R11>!=0 THEN PC <- LABEL
-		MOVE(R3, R11)
-		MOVE(R2, R3)
-		MOVE(R11,R2)
+		SWITCH(R2,R3,R11)		|; switch R2 and R3
 	noswaplabel: 				|; no swap label
 
 	|; Offset calculation
