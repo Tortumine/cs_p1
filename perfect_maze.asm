@@ -55,15 +55,15 @@
 	|;Ra : Pointers of Array in ram 
 	|;Rb : cell
 	|;return value
-	.macro Get_Cel_Array(Ra, Rb, Rc){
-		MULC(Rb, 4, Rc)	|;Multiply cell by for to obtain offset memory
-		ADD(Ra, Rb, Ra)	|;Add offset to pointers of array 
-		LD(Ra, 0, Rc)	|;return value of cell
+	.macro Get_Cell_Array(Ra, Rb, Rc){
+		|;MULC(Rb, 4, Rc)	|;Multiply cell by for to obtain offset memory
+		ADD(Ra, Rb, Rc)	|;Add offset to pointers of array 
+		LD(Rc, 0, Rc)	|;return value of cell
 	}
-	.macro Set_Cel_Array(Ra, Rb, Rc){
-		MULC(Rb, 4, Rc)	|;Multiply cell by for to obtain offset memory
-		ADD(Ra, Rb, Ra)	|;Add offset to pointers of array 
-		ST(Ra, 0, Rc)	|;save register
+	.macro Set_Cell_Array(Ra, Rb, Rc){
+		|;MULC(Rb, 4, Rc)	|;Multiply cell by for to obtain offset memory
+		ADD(Ra, Rb, Rc)	|;Add offset to pointers of array 
+		ST(Rc, 0, Rc)	|;save register
 	}
 	
 |;*****************************************************************************
@@ -156,7 +156,6 @@ connect:
 	PUSH(LP)
 	PUSH(BP)
 	MOVE(SP, BP)
-	ALLOCATE(20)
 	PUSH(R1)
 	PUSH(R2)
 	PUSH(R3)
@@ -283,8 +282,8 @@ connect:
 	POP(R2)
 	POP(R1)
 	
-	MOVE(R31,r0) |; return 0x0
-	MOVE(BP,SP)
+	|;MOVE(R31,r0) |; return 0x0
+	|;MOVE(BP,SP)
 	POP(BP)
 	POP(LP)
 	RTN()
@@ -331,7 +330,6 @@ PUSH(R10)
 PUSH(R11)
 PUSH(R12)
 PUSH(R13)
-.breakpoint
 LD(BP, -12, R1) |;Get params Maze
 LD(BP, -16, R2) |;Get params Rows
 LD(BP, -20, R3)	|;Get Cols Params
@@ -349,7 +347,6 @@ ADD(R4, R12, R12)	|;R12 <- visited[curr_cell / 32]
 LD(R12, 0, R13)		|;R13 <- &visited[curr_cell / 32]
 OR(R13, R11, R13)	|;visited[curr_cell /32] |= (1 << curr_cell % 32)
 ST(R13, 0, R12)		|;Save visited[curr_cell /32] |= (1 << curr_cell % 32)
-
 |;neighbours
 |;How manage that ?
 |;valid neighbours static array and array size
@@ -364,7 +361,7 @@ MOD(R5, R3, R10)	|;int col = index % nb_cols
 CMPLEC(R10, 0, R11)	|;if (col <= 0)
 BNE(R11, noleft)	|;if R11 != 0 then col <= 0 then col !> 0
 |;neighbours[n_valid_neighbours++] = curr_cell - 1;
-Get_Cel_Array(R7, R6, R12)
+Get_Cell_Array(R7, R6, R12)
 SUBC(R5, 1, R12)	|;loaded Register <- curr_cell -1
 ST(R12, 0, R11)		|;save register
 ADDC(R6, 1, R6)		|;n_valid_neighbours++
@@ -375,7 +372,7 @@ SUBC(R3, 1, R11)	|;R11 <- nb_cols - 1
 CMPLT(R10, R11, R11)	|;R11 <- if(col<nb_cols-1)
 BEQ(R11, noright)	|;if !(col < nb_cols -1) go to label
 |;neighbours[n_valid_neighbours++] = curr_cell + 1;
-Get_Cel_Array(R7, R6, R12)
+Get_Cell_Array(R7, R6, R12)
 ADDC(R5, 1, R12)	|;loaded Register <- curr_cell + 1
 ST(R12, 0, R11)		|;save register
 ADDC(R6, 1, R6)		|;n_valid_neighbours++
@@ -387,7 +384,7 @@ DIV(R5, R3, R10)	|;return index / nb_cols;
 CMPLEC(R10, 0, R11)
 BNE(R11, notop)
 |;neighbours[n_valid_neighbours++] = curr_cell - nb_cols;
-Get_Cel_Array(R7, R6, R12)
+Get_Cell_Array(R7, R6, R12)
 SUB(R5, R3, R12)	|;loaded Register <- curr_cell - nb_cols
 ST(R12, 0, R11)		|;save register
 ADDC(R6, 1, R6)		|;n_valid_neighbours++
@@ -398,11 +395,12 @@ SUBC(R2, 1, R11) 	|;R11 <- nb_rows - 1
 CMPLT(R10, R11, R11)	|;R11 <- row < nb_rows - 1
 BEQ(R11, nobottom)
 |;neighbours[n_valid_neighbours++] = curr_cell + nb_cols;
-Get_Cel_Array(R7, R6, R12)
+Get_Cell_Array(R7, R6, R12)
 ADD(R5, R3, R12)	|;loaded Register <- curr_cell + nb_cols
 ST(R12, 0, R11)		|;save register
 ADDC(R6, 1, R6)		|;n_valid_neighbours++
 nobottom:
+
 |;explore valid neighbours
 while:
 |;(n_valid_neighbours > 0)
@@ -413,7 +411,7 @@ BNE(R11, endwhile)
 RANDOM()
 MOD(R0, R6, R9) 	|;
 |;int neighbour = neighbours[random_neigh_index];
-Get_Cel_Array(R7, R7, R8)
+Get_Cell_Array(R7, R7, R8)
 |;swap(neighbours + n_valid_neighbours - 1, neighbours + random_neigh_index);
 SUBC(R6, 1, R11)
 Get_Cell_Array(R7, R11, R12)
@@ -441,15 +439,12 @@ BNE(R11, while)
 	|; Source cell, Destination cell, Number of Columns
 	|; for horizontal : R3 = R2 +-1
 	|; for vertical : R3 = R2 +-32
-		CMOVE(0,R2) 
-		CMOVE(32,R3)
-		CMOVE(NB_COLS,R4)
 		PUSH(R3)	|;nb_cols
 		PUSH(R5)	|;source	
 		PUSH(R8)	|;dest
 		PUSH(R1)	|;maze
 		CALL(connect)
-
+		DEALLOCATE(4)
 |;perfect_maze(maze, nb_rows, nb_cols, visited, neighbour);
 PUSH(R5) |; CurrentCell
 PUSH(R4) |; Visited
@@ -475,8 +470,8 @@ endwhile:
 	POP(R2)
 	POP(R1)
 	
-	MOVE(R31,r0) |; return 0x0
-	MOVE(BP,SP)
+	|;MOVE(R31,r0) |; return 0x0
+	|;MOVE(BP,SP)
 	POP(BP)
 	POP(LP)
 	RTN()
