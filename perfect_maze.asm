@@ -57,12 +57,10 @@
 |; CONSTANTS
 |;*****************************************************************************
 
-|; cf C code
-H_LINE = 0xFFFFFFFF
-V_LINE = 0xC0C0C0C0
 NB_ROWS = 8
 NB_COLS = 32
 NB_CELLS = 256
+
 WORDS_PER_MEM_LINE = 8
 MEM_LINES_PER_ROW = 8
 WORDS_PER_ROW = 64
@@ -143,7 +141,6 @@ connect:
 	PUSH(LP)
 	PUSH(BP)
 	MOVE(SP, BP)
-	ALLOCATE(20)
 	PUSH(R1)
 	PUSH(R2)
 	PUSH(R3)
@@ -166,7 +163,6 @@ connect:
 	LD(BP, -16, R2) |;Get param source
 	LD(BP, -20, R3)	|;Get param dest
 	LD(BP, -24, R4) |;Get param nb_cols
-.breakpoint
 	|; if(source > dest) -> swap
 	CMPLT(R3, R2, R11)			|;check if R2<R3
 	BEQ(R11, noswaplabel)		|; IF <R11>!=0 THEN PC <- LABEL
@@ -270,7 +266,6 @@ connect:
 	POP(R2)
 	POP(R1)
 	
-	MOVE(R31,r0) |; return 0x0
 	MOVE(BP,SP)
 	POP(BP)
 	POP(LP)
@@ -296,18 +291,18 @@ connect:
 |;		R4 	<- Visited
 |;		R5 	<- CurrentCell
 |;
-|;		R6 	<- n_valid_neighbours
-|;		R7 	<- neighbours[4]
-|;		R8 	<- neighbours
-|;		R9 	<- random_neigh_index
-|;		R10	<- col/row
+|;		R6 	<- col
+|;		R7 	<- row
+|;		R8 	<- n_valid_neighbours
+|;		R9 	<- 
+|;		R10	<- 
 |;		----------
 |;		TMP vars
 |;		----------
 |;		R11	<- tmp1
 |;		R12	<- tmp2
 |;		R13	<- tmp3
-|;		R14	<- tmp4  = nb_cols
+|;		R14	<- tmp4
 |;----------
 perfect_maze:
 	PUSH(LP)
@@ -331,15 +326,49 @@ perfect_maze:
 	PUSH(R16)
 
 	|; Load Parameters
-	LD(BP, -12, R1) |;Get params Maze
-	LD(BP, -16, R2) |;Get params Rows
-	LD(BP, -20, R3)	|;Get params Cols
-	LD(BP, -24, R4) |;Get params Visited
-	LD(BP, -28, R5) |;Get params CurrentCell
-
+	LD(BP, -12, R1) |;Get param Maze
+	LD(BP, -16, R2) |;Get param Rows
+	LD(BP, -20, R3)	|;Get param Cols
+	LD(BP, -24, R4) |;Get param Visited
+	LD(BP, -28, R5) |;Get param CurrentCell
 	
-
+	CMOVE(45,R5)	|; index control for tests
 	
+	|; calculate position
+	MOD(R5,R3,R6) 	|; col
+	DIV(R5,R3,R7)	|; row
+	
+	|; visited[curr_cell / 32]  =  visited[curr_cell / 32]  ||  (1 << (curr_cell % 32));
+	|; used regs : R11 -> R15
+		|; R8 <- (1 << Current_cell%32)
+		MODC(R5,0x20,R14)
+		CMOVE(1, R15)
+		SHL(R15, R14, R11)	|;curent_mask set
+		
+		|; R12 = visited[curr_cell / 32]
+		DIVC(R5,0x20,R14)	|; visited offset
+		ADD(R14,R4,R15)		|; get visited_mask address
+		LD(R15, 0x0, R12)	|; load visited mask
+		
+		OR(R11,R12,R13)		|; apply bit-mask
+		ST(R13, 0x0, R15)	|; save bit-mask
+		
+	
+	.breakpoint
+	|; This is an example of connect function call
+	|; connect ( maze, source, destination, number of columns )
+	|; Source cell, Destination cell, Number of Columns
+	|; for horizontal : R3 = R2 +-1
+	|; for vertical : R3 = R2 +-32
+		HALT()
+		ADDC(R5, 1, R16)	|; RC <- <RA> + C
+		PUSH(R3)	|;nb_cols
+		PUSH(R16)	|;destination	
+		PUSH(R5)	|;source
+		PUSH(R1)	|;maze
+		CALL(connect)
+
+
 	|; exit operations
 	POP(R16)
 	POP(R15)
