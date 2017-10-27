@@ -444,9 +444,9 @@ BNE(R11, while)
 		CMOVE(0,R2) 
 		CMOVE(32,R3)
 		CMOVE(NB_COLS,R4)
-		PUSH(R4)	|;nb_cols
-		PUSH(R3)	|;source	
-		PUSH(R2)	|;dest
+		PUSH(R3)	|;nb_cols
+		PUSH(R5)	|;source	
+		PUSH(R8)	|;dest
 		PUSH(R1)	|;maze
 		CALL(connect)
 
