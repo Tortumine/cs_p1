@@ -1,8 +1,7 @@
 |; TODO :: ADD AS MUCH MACROS AS YOU CAN
-|; TODO :: after jon's merge clean unnecessary CONSTANTS
-|; TODO :: clear unnecessary cont
+|; TODO :: clean unnecessary CONSTANTS
 |; TODO :: find a better name for the "STUFF" part
-|; TODO MAYBE :: create swap function
+|; TODO :: Connect integration in the perfect maze function 428-440
 
 |;*****************************************************************************
 |; MACROS
@@ -73,8 +72,9 @@ CELLS_PER_WORD = 4
 |; STUFF
 |;*****************************************************************************
 
+|; 8 words saved for the visited bitmap
 neighbours__:
-	STORAGE(4)  |; 8 words saved for the visited bitmap
+	STORAGE(4)  
 
 |; callers for LONG bit-masks
 OPEN_H0:
@@ -301,19 +301,6 @@ connect:
 |;R13	-> tmp
 |;----------
 perfect_maze:
-	|; This is an example of connect function call
-	|; It requires 3 params
-	|; Source cell, Destination cell, Number of Columns
-	|; for horizontal : R3 = R2 +-1
-	|; for vertical : R3 = R2 +-32
-		CMOVE(0,R2) 
-		CMOVE(32,R3)
-		CMOVE(NB_COLS,R4)
-		PUSH(R4)	|;nb_cols
-		PUSH(R3)	|;source	
-		PUSH(R2)	|;dest
-		PUSH(R1)	|;maze
-		CALL(connect)
 PUSH(LP)
 PUSH(BP)
 MOVE(SP, BP)
@@ -437,6 +424,20 @@ ANDC(R11, 1, R11)	|;visited_bit = (visited[neighbour / 32] >> (neighbour % 32)) 
 CMPEQC(R11, 1, R11)
 BNE(R11, while)
 |;connect(maze, curr_cell, neighbour, nb_cols);
+
+	|; This is an example of connect function call
+	|; It requires 3 params
+	|; Source cell, Destination cell, Number of Columns
+	|; for horizontal : R3 = R2 +-1
+	|; for vertical : R3 = R2 +-32
+		CMOVE(0,R2) 
+		CMOVE(32,R3)
+		CMOVE(NB_COLS,R4)
+		PUSH(R4)	|;nb_cols
+		PUSH(R3)	|;source	
+		PUSH(R2)	|;dest
+		PUSH(R1)	|;maze
+		CALL(connect)
 
 |;perfect_maze(maze, nb_rows, nb_cols, visited, neighbour);
 PUSH(R5) |; CurrentCell
