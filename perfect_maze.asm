@@ -404,12 +404,22 @@ perfect_maze:
 			RANDOM()				|; R0 <= rand()
 			ANDC(R0,0xFFF,R0)		|; to avoid overflow during MOD
 			MOD(R0,R8,R10)			|; 
-			SUBC(R8, 0x1, R8)		|; n_valid_neighbours--
 				MULC(R8,0x4,R11)		|;neighbours[R8]
 				ADD(R9,R11,R11)			
-			LD(R11,0x0,R12)			|; load the selected neighbour's index to R12
+			LD(R11,0x0,R12)			|; load the selected neighbour index to R12
+
+|; INSERT STRANGE SWAP HERE
 		
-	
+			SUBC(R8, 0x1, R8)		|; n_valid_neighbours--
+			
+|; INSERT VISITED BITMAP MODIFICATION HERE
+			
+|; INSERTCONNECT CALL HERE
+
+|; INSERT PERFECT_MAZE RECURSIVE CALL HERE
+		
+		BEQ(R31, whilestart)
+		whilestop:
 	|; This is an example of connect function call
 	|; connect ( maze, source, destination, number of columns )
 	|; Source cell, Destination cell, Number of Columns
