@@ -448,8 +448,6 @@ perfect_maze:
 				ANDC(R15,0x1,R15)
 				BNE(R15, whilestart)
 				
-			
-			.breakpoint
 			|; CALL CONNECT 
 				PUSH(R3)	|;nb_cols
 				PUSH(R11)	|;destination	
