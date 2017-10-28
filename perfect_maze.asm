@@ -1,14 +1,12 @@
 |; TODO :: ADD AS MUCH MACROS AS YOU CAN
 |; TODO :: clean unnecessary CONSTANTS
 |; TODO :: find a better name for the "STUFF" part
-|; TODO :: Connect integration in the perfect maze function
-|; TODO :: Write a description for perfect_maze function
 
 |;*****************************************************************************
 |; MACROS
 |;*****************************************************************************
 	
-		|; Reg[Rc] <- Reg[Ra] mod C (Rc should be different from Ra)
+	|; Reg[Rc] <- Reg[Ra] mod C (Rc should be different from Ra)
 	.macro MODC(Ra, C, Rc) DIVC(Ra, C, Rc) MULC(Rc, C, Rc) SUB(Ra, Rc, Rc)
 
 	|; macros to define bitmasks (cf connect() L ***LINENUMBER***)
@@ -39,29 +37,181 @@
 		ST(Ry,0x0,Ra)
 	}
 	
-	|; Horizontal opening macro
-	|; 	Get the name of the caller and create an opening at the corresponding address
-	.macro HOR(C){
-		LD(R15, 0x0, R11)			|; get table row0
-			CMOVE(C, R12)		|; get bit mask adr
-			LD(R12,0x0,R13)			|; get bit mask
-			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>		|; H'
-			ST(R14, 0x20, R15)		|; <RA>+0x20 <- <RC>	|; H''
-	}
-	|; Vertical opening macro
-	|; Get the name of the caller and create an opening at the corresponding address
-	.macro VER(C){
-		LD(R15, 0x60, R11)		|; get table row0
-			CMOVE(C, R12)		|; get bit mask adr
-			LD(R12,0x0,R13)			|; get bit mask
-			AND(R11, R13, R14)		|; 			
-			ST(R14, 0x60, R15)		
-			ST(R14, 0x80, R15)		
-			ST(R14, 0xA0, R15)
-			ST(R14, 0xC0, R15)			
-	}
 	
+	
+|;*****************************************************************************	
+|; SPECIFIC MACROS FOR FUNCTIONS
+|;*****************************************************************************	
+	
+	|; connect()
+		|; Macro to init connect function (push regs to the stack and get parameters)
+		.macro CONINIT(){
+			|; Saving local variables form the caller
+			PUSH(LP)
+			PUSH(BP)
+			MOVE(SP, BP)
+			PUSH(R1)
+			PUSH(R2)
+			PUSH(R3)
+			PUSH(R4)
+			PUSH(R5)
+			PUSH(R6)
+			PUSH(R7)
+			PUSH(R8)
+			PUSH(R9)
+			PUSH(R10)
+			PUSH(R11)
+			PUSH(R12)
+			PUSH(R13)
+			PUSH(R14)
+			PUSH(R15)
+			PUSH(R16)
+			|; Load Parameters
+			LD(BP, -12, R1) |;Get param Maze
+			LD(BP, -16, R2) |;Get param source
+			LD(BP, -20, R3)	|;Get param dest
+			LD(BP, -24, R4) |;Get param nb_cols
+		}
+		
+		|; Macro to end connect function (pop regs from the stack)
+		.macro CONEND(){
+			|; exit operations
+			POP(R16)
+			POP(R15)
+			POP(R14)
+			POP(R13)
+			POP(R12)
+			POP(R11)
+			POP(R10)
+			POP(R9)
+			POP(R8)
+			POP(R7)
+			POP(R6)
+			POP(R5)
+			POP(R4)
+			POP(R3)
+			POP(R2)
+			POP(R1)
+			
+			MOVE(BP,SP)
+			POP(BP)
+			POP(LP)
+			RTN()
+		}
+		|; Vertical opening macro
+		|; Get the name of the caller and create an opening at the corresponding address
+		.macro VER(C){
+			LD(R15, 0x60, R11)		|; get table row0
+				CMOVE(C, R12)			|; get bit mask adr
+				LD(R12,0x0,R13)			|; get bit mask
+				AND(R11, R13, R14)		|; 			
+				ST(R14, 0x60, R15)		
+				ST(R14, 0x80, R15)		
+				ST(R14, 0xA0, R15)
+				ST(R14, 0xC0, R15)			
+		}
+		|; Horizontal opening macro
+		|; Get the name of the caller and create an opening at the corresponding address
+		.macro HOR(C){
+			LD(R15, 0x0, R11)		|; get table row0
+				CMOVE(C, R12)			|; get bit mask adr
+				LD(R12,0x0,R13)			|; get bit mask
+				AND(R11, R13, R14)		|; 			
+				ST(R14, 0x0, R15)		|; <RA>+0x0 <- <RC>		|; H'
+				ST(R14, 0x20, R15)		|; <RA>+0x20 <- <RC>	|; H''
+		}
+		
+	|;perfect_maze()
+		|; Macro to init perfect_maze function (push regs to the stack and get parameters)
+		.macro PMINIT(){
+			PUSH(LP)
+			PUSH(BP)
+			MOVE(SP, BP)
+			PUSH(R1)
+			PUSH(R2)
+			PUSH(R3)
+			PUSH(R4)
+			PUSH(R5)
+			PUSH(R6)
+			PUSH(R7)
+			PUSH(R8)
+			PUSH(R9)
+			PUSH(R10)
+			PUSH(R11)
+			PUSH(R12)
+			PUSH(R13)
+			PUSH(R14)
+			PUSH(R15)
+			PUSH(R16)
+			PUSH(R17)
+			PUSH(R20)
+			PUSH(R21)
+			PUSH(R22)
+			PUSH(R23)
+
+			|; Load Parameters
+			LD(BP, -12, R1) |;Get param Maze
+			LD(BP, -16, R2) |;Get param Rows
+			LD(BP, -20, R3)	|;Get param Cols
+			LD(BP, -24, R4) |;Get param Visited
+			LD(BP, -28, R5) |;Get param CurrentCell
+		}
+		
+		|; Macro to end perfect_maze function (pop regs from the stack)
+		.macro PMEND(){
+			|; exit operations
+			POP(R23)
+			POP(R22)
+			POP(R21)
+			POP(R20)
+			POP(R17)
+			POP(R16)
+			POP(R15)
+			POP(R14)
+			POP(R13)
+			POP(R12)
+			POP(R11)
+			POP(R10)
+			POP(R9)
+			POP(R8)
+			POP(R7)
+			POP(R6)
+			POP(R5)
+			POP(R4)
+			POP(R3)
+			POP(R2)
+			POP(R1)
+			
+			MOVE(R31,r0) |; return 0x0
+			MOVE(BP,SP)
+			POP(BP)
+			POP(LP)
+			RTN()
+		}
+		|; Macro to simplify RIGHT and BOTTOM neighbours detection
+		|; It get parameters and add a neighbour it it's possible
+		|; It also increment n_valid_neighbours (R8)
+		|;
+		|; PARAMETERS
+		|;		Ra		<==	total columns or total rows count 
+		|;		Rb		<==	neighbour column or row index
+		|;		LABEL	<==	label to jump if 
+		|;		C		<==	
+		|;
+		|; EXAMPLES
+		|; 	RIGHT:	MAXLIM(R3,R6,noright,0x1)
+		|; 	BOT	 :	MAXLIM(R2,R7,nobottom,0x20)
+		.macro MAXLIM(Ra,Rb,LABEL,C){
+			
+			SUBC(Ra, 0x1, R10)	|; R10 <= RA - 1
+			CMPLT(Rb, R10, R10)	|; RC <- <RA> <  <RB>
+			BEQ(R10,LABEL)		|; if (Ra < Rb - 1) GOTO: label
+			ADDC(R5, C, R10)	|; R10 <= currentCell + C
+				MULC(R8,0x4,R11)	|;neighbours[R8]
+				ADD(R9,R11,R11)
+			ST(R10, 0x0, R11)	|; save (R10)
+			ADDC(R8,0x1,R8)		|; update n_valid_neighbours
+		}
 |;*****************************************************************************
 |; CONSTANTS
 |;*****************************************************************************
@@ -102,10 +252,10 @@ OPEN_V2:
     OPEN_V_2()
 OPEN_V3:
     OPEN_V_3()
+	
 |;*****************************************************************************
 |;FUNCTIONS
 |;*****************************************************************************
-
 
 |;---------------------------------------------------------
 |; connect ( maze, source, destination, number of columns )
@@ -144,35 +294,10 @@ OPEN_V3:
 |;		R13	<- tmp3
 |;		R14 <- tmp4
 |;		R15 <- tmp5		= pointer to the first word to edit
-
+|;---------------------------------------------------------	
 connect:
-|; Saving local variables form the caller
-	PUSH(LP)
-	PUSH(BP)
-	MOVE(SP, BP)
-	PUSH(R1)
-	PUSH(R2)
-	PUSH(R3)
-	PUSH(R4)
-	PUSH(R5)
-	PUSH(R6)
-	PUSH(R7)
-	PUSH(R8)
-	PUSH(R9)
-	PUSH(R10)
-	PUSH(R11)
-	PUSH(R12)
-	PUSH(R13)
-	PUSH(R14)
-	PUSH(R15)
-	PUSH(R16)
-	
-	
-	|; Load Parameters
-	LD(BP, -12, R1) |;Get param Maze
-	LD(BP, -16, R2) |;Get param source
-	LD(BP, -20, R3)	|;Get param dest
-	LD(BP, -24, R4) |;Get param nb_cols
+
+	CONINIT()		
 	|; if(source > dest) -> swap
 	CMPLT(R3, R2, R11)			|;check if R2<R3
 	BEQ(R11, noswaplabel)		|; IF <R11>!=0 THEN PC <- LABEL
@@ -227,7 +352,6 @@ connect:
 			VER(OPEN_V3)			|; call the macro for vertical opening
 			BEQ(R31, vhend)			|; quit the conditional structure
 
-		
 	horizontal:	|; open horizontal connection
 		
 		|; Switch case depending on the byte_offset
@@ -241,58 +365,41 @@ connect:
 		BT(R11, horizontal_3)|; 3
 		
 		horizontal_0:			|;case H0
-			HOR(OPEN_H0)			|; call the macro for horizontal opening
+			HOR(OPEN_H0)			|; call the macro for horizontal opening 0
 			BEQ(R31, vhend)			|; quit the conditional structure
 			
 		horizontal_1:			|;case H1	
-			HOR(OPEN_H1)			|; call the macro for horizontal opening
+			HOR(OPEN_H1)			|; call the macro for horizontal opening 1
 			BEQ(R31, vhend)			|; quit the conditional structure
 			
 		horizontal_2:			|;case H2		
-			HOR(OPEN_H2)			|; call the macro for horizontal opening
+			HOR(OPEN_H2)			|; call the macro for horizontal opening 2
 			BEQ(R31, vhend)			|; quit the conditional structure
 			
 		horizontal_3:			|;case H3
-			HOR(OPEN_H3)			|; call the macro for horizontal opening
+			HOR(OPEN_H3)			|; call the macro for horizontal opening 3
 			BEQ(R31, vhend)			|; quit the conditional structure
 			
 	vhend:	|; vertical horizontal end
+	CONEND()
 	
-	|; exit operations
-	POP(R16)
-	POP(R15)
-	POP(R14)
-	POP(R13)
-	POP(R12)
-	POP(R11)
-	POP(R10)
-	POP(R9)
-	POP(R8)
-	POP(R7)
-	POP(R6)
-	POP(R5)
-	POP(R4)
-	POP(R3)
-	POP(R2)
-	POP(R1)
-	
-	MOVE(BP,SP)
-	POP(BP)
-	POP(LP)
-	RTN()
 	
 
 |;---------------------------------------------------------
 |; perfect_maze ( maze, rows, cols, visited , current cell )
 |;---------------------------------------------------------	
 |;	DESCRIPTION
-|;		
+|;		Called recursively, this function generates the maze by moving from cell to cell
+|;		It saves current call as visited in the bitmap
+|;		Finds direct possible neighbours
+|;		Connect + Call(perfect_maze) for each of them in random order
 |;		
 |;	PARAMETERS
-|;
-|;
-|;
-|;
+|;		maze			<== pointer to the mase in RAM
+|;		rows			<== number of rows
+|;		cols			<== number of cols
+|;		visited			<== pointer to visited bitmap
+|;		current cell	<== current cell
 |;
 |;	REGISTERS
 |;		R1 	<- Maze
@@ -316,42 +423,18 @@ connect:
 |;		R15	<- tmp
 |;		R16	<- tmp 
 |;		R17	<- tmp
-|;----------
-perfect_maze:
-	PUSH(LP)
-	PUSH(BP)
-	MOVE(SP, BP)
-	PUSH(R1)
-	PUSH(R2)
-	PUSH(R3)
-	PUSH(R4)
-	PUSH(R5)
-	PUSH(R6)
-	PUSH(R7)
-	PUSH(R8)
-	PUSH(R9)
-	PUSH(R10)
-	PUSH(R11)
-	PUSH(R12)
-	PUSH(R13)
-	PUSH(R14)
-	PUSH(R15)
-	PUSH(R16)
-	PUSH(R17)
-	PUSH(R20)
-	PUSH(R21)
-	PUSH(R22)
-	PUSH(R23)
+|;		----------
+|;		Neighbours
+|;		-These registers are used before recursive calls to save current neighbours
 
-	|; Load Parameters
-	LD(BP, -12, R1) |;Get param Maze
-	LD(BP, -16, R2) |;Get param Rows
-	LD(BP, -20, R3)	|;Get param Cols
-	LD(BP, -24, R4) |;Get param Visited
-	LD(BP, -28, R5) |;Get param CurrentCell
-	
-	|;CMOVE(,R5)	|; index control for tests
-	
+|;		----------
+|;		R20	<- neighbour0
+|;		R21	<- neighbour1
+|;		R22	<- neighbour2
+|;		R23	<- neighbour3
+|;---------------------------------------------------------	
+perfect_maze:
+	PMINIT()
 	|; calculate position
 		MOD(R5,R3,R6) 	|; col
 		DIV(R5,R3,R7)	|; row
@@ -383,14 +466,7 @@ perfect_maze:
 			noleft:
 			
 		|; RIGHT
-			SUBC(R3, 0x1, R10)	|; R10 <= nb_cols - 1
-			CMPLT(R6, R10, R10)	|; RC <- <RA> <  <RB>
-			BEQ(R10,noright)	|; if (col < nb_cols - 1) GOTO: noright
-				ADDC(R5, 0x1, R10)	|; R10 <= currentCell + 1 
-					MULC(R8,0x4,R11)	|;neighbours[R8]
-					ADD(R9,R11,R11)
-				ST(R10, 0x0, R11)	|; save right (R10)
-				ADDC(R8,0x1,R8)		|; update n_valid_neighbours
+			MAXLIM(R3,R6,noright,0x1)
 			noright:
 			
 		|; TOP
@@ -403,14 +479,7 @@ perfect_maze:
 			notop:
 			
 		|; BOTTOM
-			SUBC(R2, 0x1, R10)	|; R10 <= nb_rows - 1	
-			CMPLT(R7, R10, R10)	|; RC <- <RA> <  <RB>
-			BEQ(R10,nobottom)		|; if (row < nb_rows - 1) GOTO: nobottom
-				ADDC(R5, 0x20, R10)	|; R10 <= currentCell + 32
-					MULC(R8,0x4,R11)	|;neighbours[R8]
-					ADD(R9,R11,R11)
-				ST(R10, 0x0, R11)	|; save top (R10)
-				ADDC(R8,0x1,R8)		|; update n_valid_neighbours
+			MAXLIM(R2,R7,nobottom,0x20)
 			nobottom:
 
 		|; while (n_valid_neighbours > 0)
@@ -440,8 +509,8 @@ perfect_maze:
 
 			SUBC(R8, 0x1, R8)		|; n_valid_neighbours--
 			
-|; INSERT VISITED BITMAP MODIFICATION HERE
-			|; 
+			|; Check is the neighbour was visited or not
+			|; If it was , GOTO whilestart
 			
 				DIVC(R11,0x20,R14)
 				MULC(R14,0x4,R14)				
@@ -480,31 +549,5 @@ perfect_maze:
 					ST(R23, 0x12, R9)
 		BEQ(R31, whilestart)
 		whilestop:
-	|; exit operations
-	POP(R23)
-	POP(R22)
-	POP(R21)
-	POP(R20)
-	POP(R17)
-	POP(R16)
-	POP(R15)
-	POP(R14)
-	POP(R13)
-	POP(R12)
-	POP(R11)
-	POP(R10)
-	POP(R9)
-	POP(R8)
-	POP(R7)
-	POP(R6)
-	POP(R5)
-	POP(R4)
-	POP(R3)
-	POP(R2)
-	POP(R1)
+		PMEND()
 	
-	MOVE(R31,r0) |; return 0x0
-	MOVE(BP,SP)
-	POP(BP)
-	POP(LP)
-	RTN()
