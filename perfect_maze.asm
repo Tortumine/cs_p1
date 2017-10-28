@@ -314,7 +314,7 @@ connect:
 |;		R13	<- tmp
 |;		R14	<- tmp
 |;		R15	<- tmp
-|;		R16	<- tmp
+|;		R16	<- tmp 
 |;		R17	<- tmp
 |;----------
 perfect_maze:
@@ -346,27 +346,25 @@ perfect_maze:
 	LD(BP, -24, R4) |;Get param Visited
 	LD(BP, -28, R5) |;Get param CurrentCell
 	
-	|;CMOVE(36,R5)	|; index control for tests
+	|;CMOVE(,R5)	|; index control for tests
 	
 	|; calculate position
-	MOD(R5,R3,R6) 	|; col
-	DIV(R5,R3,R7)	|; row
+		MOD(R5,R3,R6) 	|; col
+		DIV(R5,R3,R7)	|; row
 	
-	|; visited[curr_cell / 32]  =  visited[curr_cell / 32]  ||  (1 << (curr_cell % 32));
-	|; used regs : R11 -> R15
-		|; R8 <- (1 << Current_cell%32)
-		MODC(R5,0x20,R14)
-		CMOVE(1, R15)
-		SHL(R15, R14, R11)	|;curent_mask set
+	|; set current cell as visited 
+		MODC(R5,0x20,R10)
+		CMOVE(0x1,R11)
+		SHL(R11, R10, R12)
 		
-		|; R12 = visited[curr_cell / 32]
-		DIVC(R5,0x20,R14)		|; visited offset
-		ADD(R14,R4,R15)			|; get visited_mask address
-		LD(R15, 0x0, R12)		|; load visited mask
-		
-		OR(R11,R12,R13)			|; apply bit-mask
-		ST(R13, 0x0, R15)		|; save bit-mask
+		DIVC(R5, 0x20, R10)
+		MULC(R10,0x4,R10)
+		ADD(R4,R10,R10)
+		LD(R10,0x0,R11)
+		OR(R11,R12,R12)
+		ST(R12,0x0,R10)
 	
+
 	|; Void valid neighbours creation	
 		CMOVE(0x0,R8)			|; n_valid_neighbours
 		CMOVE(neighbours__, R9)	|;int neighbours[4]
@@ -424,7 +422,6 @@ perfect_maze:
 				
 			LD(R11,0x0,R11)			|; load the selected neighbour index into R11
 			
-
 			|; (neighbours + n_valid_neighbours - 1) == R12
 				SUBC(R8,0x1,R12)
 				MULC(R12,0x4,R12)
@@ -434,17 +431,25 @@ perfect_maze:
 				ADD(R9,R13,R13)
 			|; SWAP MEM (R12,R13)
 				|; regs R14 and R15 will contains values of R13 and R12
-				MSWAP(R12,R13,R14,R15)	
+				MSWAP(R12,R13,R14,R15)
+			
 
 			SUBC(R8, 0x1, R8)		|; n_valid_neighbours--
-			HALT()
 			
-
+|; INSERT VISITED BITMAP MODIFICATION HERE
+			|; 
+			
+				DIVC(R11,0x20,R14)
+				MULC(R14,0x4,R14)				
+				ADD(R14,R4,R14)
+				MODC(R11,0x20,R15)
+				LD(R14,0x0,R14)
+				SHR(R14, R15, R15)		|; RC <- <RA> >> <RB>
+				ANDC(R15,0x1,R15)
+				BNE(R15, whilestart)
 				
 			
-						
-|; INSERT VISITED BITMAP MODIFICATION HERE
-			
+			.breakpoint
 			|; CALL CONNECT 
 				PUSH(R3)	|;nb_cols
 				PUSH(R11)	|;destination	
@@ -452,8 +457,7 @@ perfect_maze:
 				PUSH(R1)	|;maze
 					CALL(connect)
 				DEALLOCATE(4)
-
-
+			
 			|; CALL PERFECT_MAZE
 				PUSH(R11)	|;current
 				PUSH(R4)	|;visited
