@@ -23,11 +23,11 @@
 	.macro OPEN_V_3() {LONG(0x00FFFFFF)}
 	
 	|; Swap registers macro
-	|; get 3 regs Ra Rb and Rtmp , switch Ra and Rb
-	.macro SWITCH(Ra,Rb,Rtmp){
-		MOVE(Ra, Rtmp)
+	|; swap Ra and Rb using stack
+	.macro SWAP(Ra,Rb){
+		PUSH(Ra)
 		MOVE(Rb, Ra)
-		MOVE(Rtmp,Rb)
+		POP(Rb)
 	}
 	
 	|; Horizontal opening macro
@@ -166,7 +166,7 @@ connect:
 	|; if(source > dest) -> swap
 	CMPLT(R3, R2, R11)			|;check if R2<R3
 	BEQ(R11, noswaplabel)		|; IF <R11>!=0 THEN PC <- LABEL
-		SWITCH(R2,R3,R11)		|; switch R2 and R3
+		SWAP(R2,R3)			|; swap R2 and R3
 	noswaplabel: 				|; no swap label
 
 	|; Offset calculation
@@ -294,8 +294,8 @@ connect:
 |;		R6 	<- col
 |;		R7 	<- row
 |;		R8 	<- n_valid_neighbours
-|;		R9 	<- 
-|;		R10	<- 
+|;		R9 	<- neighbours pointer
+|;		R10	<- neighbours offset
 |;		----------
 |;		TMP vars
 |;		----------
@@ -332,7 +332,7 @@ perfect_maze:
 	LD(BP, -24, R4) |;Get param Visited
 	LD(BP, -28, R5) |;Get param CurrentCell
 	
-	CMOVE(45,R5)	|; index control for tests
+	CMOVE(36,R5)	|; index control for tests
 	
 	|; calculate position
 	MOD(R5,R3,R6) 	|; col
@@ -346,15 +346,70 @@ perfect_maze:
 		SHL(R15, R14, R11)	|;curent_mask set
 		
 		|; R12 = visited[curr_cell / 32]
-		DIVC(R5,0x20,R14)	|; visited offset
-		ADD(R14,R4,R15)		|; get visited_mask address
-		LD(R15, 0x0, R12)	|; load visited mask
+		DIVC(R5,0x20,R14)		|; visited offset
+		ADD(R14,R4,R15)			|; get visited_mask address
+		LD(R15, 0x0, R12)		|; load visited mask
 		
-		OR(R11,R12,R13)		|; apply bit-mask
-		ST(R13, 0x0, R15)	|; save bit-mask
+		OR(R11,R12,R13)			|; apply bit-mask
+		ST(R13, 0x0, R15)		|; save bit-mask
+	
+	|; Void valid neighbours creation	
+		CMOVE(0x0,R8)			|; n_valid_neighbours
+		CMOVE(neighbours__, R9)	|;int neighbours[4]
+	|; neighbours check_list
+	|; used tmps : 
+	|; R10 
+		|; LEFT
+			BEQ(R6,noleft)		|; if (col == 0) GOTO: noleft
+				SUBC(R5, 0x1, R10)	|; R10 <= currentCell - 1
+				ST(R10, 0x0, R9)	|; save left (R10)
+				ADDC(R8,0x1,R8)		|; update n_valid_neighbours
+			noleft:
+			
+		|; RIGHT
+			SUBC(R3, 0x1, R10)	|; R10 <= nb_cols - 1
+			CMPLT(R6, R10, R10)	|; RC <- <RA> <  <RB>
+			BEQ(R10,noright)	|; if (col < nb_cols - 1) GOTO: noright
+				ADDC(R5, 0x1, R10)	|; R10 <= currentCell + 1 
+					MULC(R8,0x4,R11)	|;neighbours[R8]
+					ADD(R9,R11,R11)
+				ST(R10, 0x0, R11)	|; save right (R10)
+				ADDC(R8,0x1,R8)		|; update n_valid_neighbours
+			noright:
+			
+		|; TOP
+			BEQ(R7,notop)		|; if (row == 0) GOTO: notop
+				SUBC(R5, 0x20, R10)	|; R10 <= currentCell - 32
+					MULC(R8,0x4,R11)	|;neighbours[R8]
+					ADD(R9,R11,R11)
+				ST(R10, 0x0, R11)	|; save top (R10)
+				ADDC(R8,0x1,R8)		|; update n_valid_neighbours
+			notop:
+			
+		|; BOTTOM
+			SUBC(R2, 0x1, R10)	|; R10 <= nb_rows - 1	
+			CMPLT(R7, R10, R10)	|; RC <- <RA> <  <RB>
+			BEQ(R10,nobottom)		|; if (row < nb_rows - 1) GOTO: nobottom
+				ADDC(R5, 0x20, R10)	|; R10 <= currentCell + 32
+					MULC(R8,0x4,R11)	|;neighbours[R8]
+					ADD(R9,R11,R11)
+				ST(R10, 0x0, R11)	|; save top (R10)
+				ADDC(R8,0x1,R8)		|; update n_valid_neighbours
+			nobottom:
+
+		|; while (n_valid_neighbours > 0)
+		whilestart:
+		BEQ(R8, whilestop)		|; if(n_valid_neighbours == 0) GOTO: whilestop
+			
+			RANDOM()				|; R0 <= rand()
+			ANDC(R0,0xFFF,R0)		|; to avoid overflow during MOD
+			MOD(R0,R8,R10)			|; 
+			SUBC(R8, 0x1, R8)		|; n_valid_neighbours--
+				MULC(R8,0x4,R11)		|;neighbours[R8]
+				ADD(R9,R11,R11)			
+			LD(R11,0x0,R12)			|; load the selected neighbour's index to R12
 		
 	
-	.breakpoint
 	|; This is an example of connect function call
 	|; connect ( maze, source, destination, number of columns )
 	|; Source cell, Destination cell, Number of Columns
