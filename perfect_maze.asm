@@ -1,6 +1,25 @@
-|; TODO :: ADD AS MUCH MACROS AS YOU CAN
-|; TODO :: clean unnecessary CONSTANTS
-|; TODO :: find a better name for the "STUFF" part
+|;*****************************************************************************	
+|; COMPUTATION STRUCTURES PROJECT ONE : PERFECT MAZE
+|;*****************************************************************************	
+|; CREATORS :
+|; 		s	Hansen Jonathan
+|;		s20174957	Mazurchyk Aliaksei
+|;
+|; LAST UPDATE :
+|;		2017/10/29
+|;
+|; GIT (accessible after 31st October):
+|;		https://github.com/Tortumine/cs_p1
+|;
+|; FILE STRUCTURE:
+|;		L XXX ----- MACROS
+|;		L XXX ----- SPECIFIC MACROS FOR FUNCTIONS
+|;		L XXX ----- OTHER MACROS
+|;		L XXX ----- CONSTANTS
+|;		L XXX ----- FUNCTIONS
+|;		|_ L XXX -- CONNECT
+|;		|_ L XXX -- PERFECT_MAZE
+
 
 |;*****************************************************************************
 |; MACROS
@@ -9,7 +28,7 @@
 	|; Reg[Rc] <- Reg[Ra] mod C (Rc should be different from Ra)
 	.macro MODC(Ra, C, Rc) DIVC(Ra, C, Rc) MULC(Rc, C, Rc) SUB(Ra, Rc, Rc)
 
-	|; macros to define bitmasks (cf connect() L ***LINENUMBER***)
+	|; Macros to define bitmasks (cf connect() L ***LINENUMBER***)
 	.macro OPEN_H_0() {LONG(0xFFFFFFE1)}
 	.macro OPEN_H_1() {LONG(0xFFFFE1FF)}
 	.macro OPEN_H_2() {LONG(0xFFE1FFFF)}
@@ -71,8 +90,7 @@
 			LD(BP, -16, R2) |;Get param source
 			LD(BP, -20, R3)	|;Get param dest
 			LD(BP, -24, R4) |;Get param nb_cols
-		}
-		
+		}		
 		|; Macro to end connect function (pop regs from the stack)
 		.macro CONEND(){
 			|; exit operations
@@ -155,8 +173,7 @@
 			LD(BP, -20, R3)	|;Get param Cols
 			LD(BP, -24, R4) |;Get param Visited
 			LD(BP, -28, R5) |;Get param CurrentCell
-		}
-		
+		}		
 		|; Macro to end perfect_maze function (pop regs from the stack)
 		.macro PMEND(){
 			|; exit operations
@@ -216,18 +233,14 @@
 |; CONSTANTS
 |;*****************************************************************************
 
-NB_ROWS = 8
-NB_COLS = 32
-NB_CELLS = 256
-
-WORDS_PER_MEM_LINE = 8
-MEM_LINES_PER_ROW = 8
-WORDS_PER_ROW = 64
-NB_MAZE_WORDS = 512 
-CELLS_PER_WORD = 4
+	WORDS_PER_MEM_LINE = 8
+	MEM_LINES_PER_ROW = 8
+	WORDS_PER_ROW = 64
+	NB_MAZE_WORDS = 512 
+	CELLS_PER_WORD = 4
 
 |;*****************************************************************************
-|; STUFF
+|; OTHER
 |;*****************************************************************************
 
 |; 8 words saved for the visited bitmap
@@ -425,8 +438,7 @@ connect:
 |;		R17	<- tmp
 |;		----------
 |;		Neighbours
-|;		-These registers are used before recursive calls to save current neighbours
-
+|;		(These registers are used before recursive calls to save current neighbours to the stack)
 |;		----------
 |;		R20	<- neighbour0
 |;		R21	<- neighbour1
@@ -463,12 +475,10 @@ perfect_maze:
 				SUBC(R5, 0x1, R10)	|; R10 <= currentCell - 1
 				ST(R10, 0x0, R9)	|; save left (R10)
 				ADDC(R8,0x1,R8)		|; update n_valid_neighbours
-			noleft:
-			
+			noleft:			
 		|; RIGHT
 			MAXLIM(R3,R6,noright,0x1)
-			noright:
-			
+			noright:			
 		|; TOP
 			BEQ(R7,notop)		|; if (row == 0) GOTO: notop
 				SUBC(R5, 0x20, R10)	|; R10 <= currentCell - 32
@@ -549,5 +559,5 @@ perfect_maze:
 					ST(R23, 0x12, R9)
 		BEQ(R31, whilestart)
 		whilestop:
-		PMEND()
-	
+	PMEND()
+|; \(°o°)/
