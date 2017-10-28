@@ -8,9 +8,6 @@
 |; LAST UPDATE :
 |;		2017/10/29
 |;
-|; GIT (accessible after 31st October):
-|;		https://github.com/Tortumine/cs_p1
-|;
 |; FILE STRUCTURE :
 |;		L XXX ----- MACROS
 |;		L XXX ----- SPECIFIC MACROS FOR FUNCTIONS
@@ -20,7 +17,7 @@
 |;		|_ L XXX -- CONNECT
 |;		|_ L XXX -- PERFECT_MAZE
 |; TODO:
-|;		Line numbering (file structure , bit-masks macros)
+|;		In-line comments + Line numbering (file structure , bit-masks macros)
 |;
 |;*****************************************************************************
 |; MACROS
@@ -561,4 +558,4 @@ perfect_maze:
 		BEQ(R31, whilestart)
 		whilestop:
 	PMEND()
-|; \(°o°)/
+|; The end
