@@ -338,6 +338,10 @@ perfect_maze:
 	PUSH(R15)
 	PUSH(R16)
 	PUSH(R17)
+	PUSH(R20)
+	PUSH(R21)
+	PUSH(R22)
+	PUSH(R23)
 
 	|; Load Parameters
 	LD(BP, -12, R1) |;Get param Maze
@@ -457,6 +461,12 @@ perfect_maze:
 				DEALLOCATE(4)
 			
 			|; CALL PERFECT_MAZE
+				|; save neighbours to regs
+					LD(R9, 0x0, R20)
+					LD(R9, 0x4, R21)
+					LD(R9, 0x8, R22)
+					LD(R9, 0x12, R23)
+					
 				PUSH(R11)	|;current
 				PUSH(R4)	|;visited
 				PUSH(R3)	|;cols	
@@ -464,10 +474,17 @@ perfect_maze:
 				PUSH(R1)	|;maze
 					CALL(perfect_maze)
 				DEALLOCATE(5)
-		
+					ST(R20, 0x0, R9)
+					ST(R21, 0x4, R9)
+					ST(R22, 0x8, R9)
+					ST(R23, 0x12, R9)
 		BEQ(R31, whilestart)
 		whilestop:
 	|; exit operations
+	POP(R23)
+	POP(R22)
+	POP(R21)
+	POP(R20)
 	POP(R17)
 	POP(R16)
 	POP(R15)
