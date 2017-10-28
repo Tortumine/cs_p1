@@ -29,6 +29,15 @@
 		MOVE(Rb, Ra)
 		POP(Rb)
 	}
+	|; Swap memory elements registers points to to mem
+	|; Ra,Rb != Rx != Ry 
+	|; Rx and Ry keep their values
+	.macro MSWAP(Ra,Rb,Rx,Ry){
+		LD(Ra,0x0,Rx)
+		LD(Rb,0x0,Ry)
+		ST(Rx,0x0,Rb)
+		ST(Ry,0x0,Ra)
+	}
 	
 	|; Horizontal opening macro
 	|; 	Get the name of the caller and create an opening at the corresponding address
@@ -158,6 +167,7 @@ connect:
 	PUSH(R15)
 	PUSH(R16)
 	
+	
 	|; Load Parameters
 	LD(BP, -12, R1) |;Get param Maze
 	LD(BP, -16, R2) |;Get param source
@@ -189,7 +199,7 @@ connect:
 	CMPLEC(R11, 0x1, R11)
 	BEQ(R11, horizontal)
 	
-	|; vertical connection (cf perfect_mase.c L61->L75)
+	|; vertical connection (cf perfect_maze.c L61->L75)
 	vertical:	|; open vertical connection
 		
 		|; Switch case depending on the byte_offset
@@ -296,13 +306,16 @@ connect:
 |;		R8 	<- n_valid_neighbours
 |;		R9 	<- neighbours pointer
 |;		R10	<- neighbours offset
+|;		R11	<- neighbour
 |;		----------
 |;		TMP vars
 |;		----------
-|;		R11	<- tmp1
-|;		R12	<- tmp2
-|;		R13	<- tmp3
-|;		R14	<- tmp4
+|;		R12	<- tmp
+|;		R13	<- tmp
+|;		R14	<- tmp
+|;		R15	<- tmp
+|;		R16	<- tmp
+|;		R17	<- tmp
 |;----------
 perfect_maze:
 	PUSH(LP)
@@ -324,6 +337,7 @@ perfect_maze:
 	PUSH(R14)
 	PUSH(R15)
 	PUSH(R16)
+	PUSH(R17)
 
 	|; Load Parameters
 	LD(BP, -12, R1) |;Get param Maze
@@ -332,7 +346,7 @@ perfect_maze:
 	LD(BP, -24, R4) |;Get param Visited
 	LD(BP, -28, R5) |;Get param CurrentCell
 	
-	CMOVE(36,R5)	|; index control for tests
+	|;CMOVE(36,R5)	|; index control for tests
 	
 	|; calculate position
 	MOD(R5,R3,R6) 	|; col
@@ -404,37 +418,55 @@ perfect_maze:
 			RANDOM()				|; R0 <= rand()
 			ANDC(R0,0xFFF,R0)		|; to avoid overflow during MOD
 			MOD(R0,R8,R10)			|; 
-				MULC(R8,0x4,R11)		|;neighbours[R8]
-				ADD(R9,R11,R11)			
-			LD(R11,0x0,R12)			|; load the selected neighbour index to R12
 
-|; INSERT STRANGE SWAP HERE
-		
-			SUBC(R8, 0x1, R8)		|; n_valid_neighbours--
+				MULC(R10,0x4,R11)		|;neighbours[R8]
+				ADD(R9,R11,R11)			
+				
+			LD(R11,0x0,R11)			|; load the selected neighbour index into R11
 			
+
+			|; (neighbours + n_valid_neighbours - 1) == R12
+				SUBC(R8,0x1,R12)
+				MULC(R12,0x4,R12)
+				ADD(R9,R12,R12)			
+			|; (neighbours + random_neigh_index) == R13
+				MULC(R10,0x4,R13)
+				ADD(R9,R13,R13)
+			|; SWAP MEM (R12,R13)
+				|; regs R14 and R15 will contains values of R13 and R12
+				MSWAP(R12,R13,R14,R15)	
+
+			SUBC(R8, 0x1, R8)		|; n_valid_neighbours--
+			HALT()
+			
+
+				
+			
+						
 |; INSERT VISITED BITMAP MODIFICATION HERE
 			
-|; INSERTCONNECT CALL HERE
+			|; CALL CONNECT 
+				PUSH(R3)	|;nb_cols
+				PUSH(R11)	|;destination	
+				PUSH(R5)	|;source
+				PUSH(R1)	|;maze
+					CALL(connect)
+				DEALLOCATE(4)
 
-|; INSERT PERFECT_MAZE RECURSIVE CALL HERE
+
+			|; CALL PERFECT_MAZE
+				PUSH(R11)	|;current
+				PUSH(R4)	|;visited
+				PUSH(R3)	|;cols	
+				PUSH(R2)	|;rows
+				PUSH(R1)	|;maze
+					CALL(perfect_maze)
+				DEALLOCATE(5)
 		
 		BEQ(R31, whilestart)
 		whilestop:
-	|; This is an example of connect function call
-	|; connect ( maze, source, destination, number of columns )
-	|; Source cell, Destination cell, Number of Columns
-	|; for horizontal : R3 = R2 +-1
-	|; for vertical : R3 = R2 +-32
-		HALT()
-		ADDC(R5, 1, R16)	|; RC <- <RA> + C
-		PUSH(R3)	|;nb_cols
-		PUSH(R16)	|;destination	
-		PUSH(R5)	|;source
-		PUSH(R1)	|;maze
-		CALL(connect)
-
-
 	|; exit operations
+	POP(R17)
 	POP(R16)
 	POP(R15)
 	POP(R14)
