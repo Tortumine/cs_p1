@@ -2,8 +2,8 @@
 |; COMPUTATION STRUCTURES PROJECT ONE : PERFECT MAZE
 |;*****************************************************************************	
 |; CREATORS :
-|; 		s	Hansen Jonathan
-|;		s20174957	Mazurchyk Aliaksei
+|; 		s174873 	Hansen Jonathan		
+|;		s174957		Mazurchyk Aliaksei	
 |;
 |; LAST UPDATE :
 |;		2017/10/29
@@ -44,7 +44,7 @@
 		MOVE(Rb, Ra)
 		POP(Rb)
 	}
-	|; Swap memory elements registers points to to mem
+	|; Memory SWAP : swap 2 memory elements, registers Ra and Rb points to the RAM
 	|; Ra,Rb != Rx != Ry 
 	|; Rx and Ry keep their values
 	.macro MSWAP(Ra,Rb,Rx,Ry){
@@ -62,10 +62,11 @@
 	|; connect()
 		|; Macro to init connect function (push regs to the stack and get parameters)
 		.macro CONINIT(){
-			|; Saving local variables form the caller
+			|; Saving local variables form the caller and moving SP, BP
 			PUSH(LP)
 			PUSH(BP)
 			MOVE(SP, BP)
+			
 			PUSH(R1)
 			PUSH(R2)
 			PUSH(R3)
@@ -90,7 +91,7 @@
 		}		
 		|; Macro to end connect function (pop regs from the stack)
 		.macro CONEND(){
-			|; exit operations
+			|; Get local variables from the stack, get previus SP, BP
 			POP(R16)
 			POP(R15)
 			POP(R14)
@@ -115,6 +116,7 @@
 		}
 		|; Vertical opening macro
 		|; Get the name of the caller and create an opening at the corresponding address
+		|; /!\ This function requires nb_colls = 32
 		.macro VER(C){
 			LD(R15, 0x60, R11)		|; get table row0
 				CMOVE(C, R12)			|; get bit mask adr
@@ -127,6 +129,7 @@
 		}
 		|; Horizontal opening macro
 		|; Get the name of the caller and create an opening at the corresponding address
+		|; /!\ This function requires nb_colls = 32
 		.macro HOR(C){
 			LD(R15, 0x0, R11)		|; get table row0
 				CMOVE(C, R12)			|; get bit mask adr
@@ -196,7 +199,6 @@
 			POP(R2)
 			POP(R1)
 			
-			MOVE(R31,r0) |; return 0x0
 			MOVE(BP,SP)
 			POP(BP)
 			POP(LP)
@@ -235,7 +237,7 @@
 neighbours__:
 	STORAGE(4)  
 
-|; callers for LONG bit-masks
+|; callers for LONG bit-masks (return bit-masks corresponding to the cut)
 OPEN_H0:
     OPEN_H_0()
 OPEN_H1:
@@ -325,7 +327,7 @@ connect:
 	ADD(R6, R8, R9)				|; word_offset = row_offset + word_offset_in_line	
 	MODC(R7,CELLS_PER_WORD,R10)	|; byte_offset = source_col % CELLS_PER_WORD
 	
-	|; R15 =  WORDS_PER_MEM_LINE * word_offset + source
+	|; R15 =  CELLS_PER_WORD * word_offset + source
 	MULC(R9,CELLS_PER_WORD,R15)
 	ADD(R15,R1,R15)
 	
@@ -445,19 +447,25 @@ connect:
 |;---------------------------------------------------------	
 perfect_maze:
 	PMINIT()
-	|; calculate position
+	|; Calculate position x y
 		MOD(R5,R3,R6) 	|; col
 		DIV(R5,R3,R7)	|; row
 	
-	|; set current cell as visited 
+	|; Set current cell as visited 
+	|; visited[curr_cell / 32] |= (1 << (curr_cell % 32))
+	
+		|; Set the bit-mask referring to the current cell
 		MODC(R5,0x20,R10)
 		CMOVE(0x1,R11)
-		SHL(R11, R10, R12)
+		SHL(R11, R10, R12) 		|; R12 <== 1 << (curr_cell % 32)
 		
+		|; Get the visited row in the memory
 		DIVC(R5, 0x20, R10)
-		MULC(R10,0x4,R10)
+		MULC(R10,0x4,R10)	
 		ADD(R4,R10,R10)
-		LD(R10,0x0,R11)
+		LD(R10,0x0,R11)			|; R11 <== visited[curr_cell / 32]
+		
+		|; apply bit-mask ant store it in the RAM
 		OR(R11,R12,R12)
 		ST(R12,0x0,R10)
 	
