@@ -9,13 +9,13 @@
 |;		2017/10/29
 |;
 |; FILE STRUCTURE :
-|;		L XXX ----- MACROS
-|;		L XXX ----- SPECIFIC MACROS FOR FUNCTIONS
-|;		L XXX ----- OTHER MACROS
-|;		L XXX ----- CONSTANTS
-|;		L XXX ----- FUNCTIONS
-|;		|_ L XXX -- CONNECT
-|;		|_ L XXX -- PERFECT_MAZE
+|;		L 022 ----- MACROS
+|;		L 058 ----- SPECIFIC MACROS FOR FUNCTIONS
+|;		L 232 ----- OTHER MACROS
+|;		L 259 ----- CONSTANTS
+|;		L 269 ----- FUNCTIONS
+|;		|_ L 273 -- CONNECT
+|;		|_ L 401 -- PERFECT_MAZE
 |; TODO:
 |;		In-line comments + Line numbering (file structure , bit-masks macros)
 |;
@@ -504,10 +504,10 @@ perfect_maze:
 			
 			RANDOM()				|; R0 <= rand()
 			ANDC(R0,0xFFF,R0)		|; to avoid overflow during MOD
-			MOD(R0,R8,R10)			|; 
+			MOD(R0,R8,R10)			|; Get number include between 0 and 3
 
-				MULC(R10,0x4,R11)		|;neighbours[R8]
-				ADD(R9,R11,R11)			
+				MULC(R10,0x4,R11)		|;Get offset of neighbour[R8]
+				ADD(R9,R11,R11)			|;Add address + offset to get real address of neighbour[R8]
 				
 			LD(R11,0x0,R11)			|; load the selected neighbour index into R11
 			
@@ -528,14 +528,14 @@ perfect_maze:
 			|; Check is the neighbour was visited or not
 			|; If it was , GOTO whilestart
 			
-				DIVC(R11,0x20,R14)
-				MULC(R14,0x4,R14)				
-				ADD(R14,R4,R14)
-				MODC(R11,0x20,R15)
-				LD(R14,0x0,R14)
-				SHR(R14, R15, R15)		|; RC <- <RA> >> <RB>
-				ANDC(R15,0x1,R15)
-				BNE(R15, whilestart)
+				DIVC(R11,0x20,R14)      |;Get the position in the bitmap
+				MULC(R14,0x4,R14)		|;Get the offset memory
+				ADD(R14,R4,R14)         |;Get the adresse
+				MODC(R11,0x20,R15)      |;Get the position of the bit in the specific adresse for prepare shift
+				LD(R14,0x0,R14)         |;Get the value of the bitmap
+				SHR(R14, R15, R15)		|;Shift right to put the bit in the less significant position
+				ANDC(R15,0x1,R15)       |;Get the only bite we need
+				BNE(R15, whilestart)    |;Check if is egal to 1
 				
 			|; CALL CONNECT 
 				PUSH(R3)	|;nb_cols
